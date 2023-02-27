@@ -1,2 +1,4 @@
 # hlSokol
-Haxe/HL Sokol bindings
+Haxe/HL bindings for https://github.com/floooh/sokol
+
+
