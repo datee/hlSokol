@@ -1,0 +1,8 @@
+.git
+res/.tmp/
+res/.tmp/**
+RECOVER_*
+extension/x64/
+extension/x64/**
+extension/.vs/
+extension/.vs/**

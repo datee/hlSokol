@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ShowAllFiles>false</ShowAllFiles>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LocalDebuggerCommand>C:\HaxeToolkit\hashlink\debug\hl.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>..</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerAttach>false</LocalDebuggerAttach>
+    <LocalDebuggerDebuggerType>NativeOnly</LocalDebuggerDebuggerType>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>c:/dev/haxe/hashlink/hlSokol/bin/App.hl</LocalDebuggerCommandArguments>
+  </PropertyGroup>  
+</Project>

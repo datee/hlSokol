@@ -1,0 +1,5 @@
+-hl bin/App.hl
+-main Main
+-cp ../..
+-cp src
+-debug
