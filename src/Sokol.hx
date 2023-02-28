@@ -39,13 +39,14 @@ class Sg
 }
 
 @:hlNative("hlSokol")
-class SApp
+class Sapp
 {
 	/////////////////////////////////////////////////////////////////////////////////////
 
-	@:hlNative("hlSokol","sgMain")					static public function start(cbInit:Void->Void,cbFrame:Void->Void,cbCleanup:Void->Void,desc:SAppDesc) {}
+	@:hlNative("hlSokol","sgMain")					static public function start(cbInit:Void->Void,cbFrame:Void->Void,cbCleanup:Void->Void,cbEvent:SappEvent->Void,desc:SappDesc) {}
 	@:hlNative("hlSokol","sAppWidth")				static public function width():Int { return 0; }
 	@:hlNative("hlSokol","sAppHeight")				static public function height():Int { return 0; }
+	@:hlNative("hlSokol","sAppGetLastEvent")		static public function getLastEvent():SappEvent { return null; }
 
 	/////////////////////////////////////////////////////////////////////////////////////
 }
@@ -117,6 +118,27 @@ class Sgp
 
 	@:hlNative("hlSokol","sgpQueryState")			static public function queryState():HLArray<SgpState> { return null; }
 	@:hlNative("hlSokol","sgpQueryDesc")			static public function queryDesc():SgpDesc { return null; }
+
+	/////////////////////////////////////////////////////////////////////////////////////
+}
+
+@:hlNative("hlSokol")
+class Sdtx
+{
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	@:hlNative("hlSokol","sdtxSetup")				static public function setup() {}
+	@:hlNative("hlSokol","sdtxShutdown")			static public function shutdown() {}
+	@:hlNative("hlSokol","sdtxTest")				static public function test() {}
+	@:hlNative("hlSokol","sdtxCanvas")				static public function canvas(w:Single,h:Single) {}
+	@:hlNative("hlSokol","sdtxOrigin")				static public function origin(x:Single,y:Single) {}
+	@:hlNative("hlSokol","sdtxHome")				static public function home() {}
+	@:hlNative("hlSokol","sdtxFont")				static public function font(fontIndex:Int) {}
+	@:hlNative("hlSokol","sdtxColor3b")				static public function color3b(r:Int,g:Int,b:Int) {}
+	@:hlNative("hlSokol","sdtxPuts")				static public function puts(str:HLString) {}
+	@:hlNative("hlSokol","sdtxPutc")				static public function putc(chr:Int) {}
+	@:hlNative("hlSokol","sdtxCrlf")				static public function crlf() {}
+	@:hlNative("hlSokol","sdtxDraw")				static public function draw() {}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 }
@@ -305,7 +327,7 @@ typedef SgpVec2 = SgpPoint;
 	@:optional var _end_canary				: Int;
 }
 
-@:publicFields @:struct @:keep @:structInit class SAppDesc
+@:publicFields @:struct @:keep @:structInit class SappDesc
 {
 	public inline function new(title:String="HlSokol",width:Int=1280,height:Int=720,sampleCount:Int=4,fullscreen:Bool=false,highDpi:Bool=false)
 	{
@@ -359,6 +381,29 @@ typedef SgpVec2 = SgpPoint;
 	var ios_keyboard_resizes_canvas		: Bool;
 }
 
+@:publicFields @:struct @:keep @:structInit class SappEvent
+{
+	@:optional var frame_count				: Int;				// current frame counter, always valid, useful for checking if two events were issued in the same frame
+	@:optional var type						: SappEventType;	// the event type, always valid
+	@:optional var key_code					: hl.Abstract<"sapp_keycode">;	// the virtual key code, only valid in KEY_UP, KEY_DOWN
+	@:optional var char_code				: Int;				// the UTF-32 character code, only valid in CHAR events
+	@:optional var key_repeat				: Bool;				// true if this is a key-repeat event, valid in KEY_UP, KEY_DOWN and CHAR
+	@:optional var modifiers				: Int;				// current modifier keys, valid in all key-, char- and mouse-events
+	@:optional var mouse_button				: SappMouseButton;	// mouse button that was pressed or released, valid in MOUSE_DOWN, MOUSE_UP
+	@:optional var mouse_x					: Single;			// current horizontal mouse position in pixels, always valid except during mouse lock	
+	@:optional var mouse_y					: Single;			// current vertical mouse position in pixels, always valid except during mouse lock
+	@:optional var mouse_dx					: Single;			// relative horizontal mouse movement since last frame, always valid
+	@:optional var mouse_dy					: Single;			// relative vertical mouse movement since last frame, always valid
+	@:optional var scroll_x					: Single;			// horizontal mouse wheel scroll distance, valid in MOUSE_SCROLL events
+	@:optional var scroll_y					: Single;			// vertical mouse wheel scroll distance, valid in MOUSE_SCROLL events
+	@:optional var int						: Int;				// number of valid items in the touches[] array
+	@:optional var touches					: HLArray<hl.Abstract<"sapp_touchpoint">> = HLArray.alloc(10); // current touch points, valid in TOUCHES_BEGIN, TOUCHES_MOVED, TOUCHES_ENDED
+	@:optional var window_width				: Int;				// current window- and framebuffer sizes in pixels, always valid
+	@:optional var window_height			: Int;
+	@:optional var framebuffer_width		: Int;				// = window_width * dpi_scale
+	@:optional var framebuffer_height		: Int;				// = window_height * dpi_scale
+}
+
 @:publicFields @:struct @:keep @:structInit class SgBuffer { var id:Int; }
 @:publicFields @:struct @:keep @:structInit class SgImage { var id:Int; }
 @:publicFields @:struct @:keep @:structInit class SgShader { var id:Int; }
@@ -393,3 +438,41 @@ enum abstract SgpError(Int)
     var SGP_ERROR_MAKE_COMMON_SHADER_FAILED = 14;
     var SGP_ERROR_MAKE_COMMON_PIPELINE_FAILED = 15;
 }
+
+enum abstract SappEventType(Int)
+{
+    var SAPP_EVENTTYPE_INVALID = 0;
+    var SAPP_EVENTTYPE_KEY_DOWN = 1;
+    var SAPP_EVENTTYPE_KEY_UP = 2;
+    var SAPP_EVENTTYPE_CHAR = 3;
+    var SAPP_EVENTTYPE_MOUSE_DOWN = 4;
+    var SAPP_EVENTTYPE_MOUSE_UP = 5;
+    var SAPP_EVENTTYPE_MOUSE_SCROLL = 6;
+    var SAPP_EVENTTYPE_MOUSE_MOVE = 7;
+    var SAPP_EVENTTYPE_MOUSE_ENTER = 8;
+    var SAPP_EVENTTYPE_MOUSE_LEAVE = 9;
+    var SAPP_EVENTTYPE_TOUCHES_BEGAN = 10;
+    var SAPP_EVENTTYPE_TOUCHES_MOVED = 11;
+    var SAPP_EVENTTYPE_TOUCHES_ENDED = 12;
+    var SAPP_EVENTTYPE_TOUCHES_CANCELLED = 13;
+    var SAPP_EVENTTYPE_RESIZED = 14;
+    var SAPP_EVENTTYPE_ICONIFIED = 15;
+    var SAPP_EVENTTYPE_RESTORED = 16;
+    var SAPP_EVENTTYPE_FOCUSED = 17;
+    var SAPP_EVENTTYPE_UNFOCUSED = 18;
+    var SAPP_EVENTTYPE_SUSPENDED = 19;
+    var SAPP_EVENTTYPE_RESUMED = 20;
+    var SAPP_EVENTTYPE_QUIT_REQUESTED = 21;
+    var SAPP_EVENTTYPE_CLIPBOARD_PASTED = 22;
+    var SAPP_EVENTTYPE_FILES_DROPPED = 23;
+}
+
+enum abstract SappMouseButton(Int)
+{
+    var SAPP_EVENTTYPE_INVALID = 0;
+    var SAPP_MOUSEBUTTON_LEFT = 0x0;
+    var SAPP_MOUSEBUTTON_RIGHT = 0x1;
+    var SAPP_MOUSEBUTTON_MIDDLE = 0x2;
+    var SAPP_MOUSEBUTTON_INVALID = 0x100;
+}
+

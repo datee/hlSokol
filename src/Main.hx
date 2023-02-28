@@ -1,13 +1,15 @@
 package;
 
+import Sokol.SappEvent;
 import Sokol.SgPipeline;
 import Sokol.SgBindings;
-import Sokol.SAppDesc;
+import Sokol.SappDesc;
 import Sokol.HLString;
 import Sokol.SgpRect;
 import Sokol.SgpLine;
 import Sokol.SgpPoint;
-import Sokol.SApp;
+import Sokol.Sapp;
+import Sokol.Sdtx;
 import Sokol.HLArray;
 import Sokol.Sg;
 import Sokol.Sgp;
@@ -22,14 +24,15 @@ class Main
 {
 	static public function main()
 	{
-		var desc:SAppDesc = new SAppDesc("What the window...!",1400,800,4,false);
-		SApp.start(init,frame,shutdown,desc);
+		var desc:SappDesc = new SappDesc("What the window...!",1400,800,4,false);
+		Sapp.start(init,frame,shutdown,event,desc);
 	}
 
 	static public function init()
 	{
 		Sg.setup();
 		Sgp.setup();
+		Sdtx.setup();
 		if (!Sgp.isValid())
 		{
 			var err = Sgp.getLastError();
@@ -102,20 +105,70 @@ class Main
 
 	public static function frame()
 	{
-		var w = SApp.width();
-		var h = SApp.height();
+		var w = Sapp.width();
+		var h = Sapp.height();
 		var ratio = w/h;
+
+		// Sg.beginDefaultPass(w,h);
+		// Sg.applyPipeline(pip);
+		// Sg.applyBindings(bind);
+		// Sg.draw(0,3,1);
+
+		// Sdtx.test();
+
 
 		Sgp.begin(w,h);
 		Sgp.viewport(0,0,w,h);
 		Sgp.project(0,w,0,h);
 		// Sgp.translate(-ratio,1);
 		// Sgp.scale(1/w,1/h);
+		Sg.beginDefaultPass(w,h);
+		Sgp.setBlendMode(SGP_BLENDMODE_BLEND);
 
 		Sgp.setColor(0.1,0.1,0.1,1.0);
 		Sgp.clear();
-		
-		Sgp.setBlendMode(SGP_BLENDMODE_BLEND);
+		Sgp.setColor(0,1,0,1.0);
+		for (y in 0...100)
+			for (x in 0...100)
+				Sgp.drawPoint(x*10,y*10);
+
+		Sgp.setColor((Math.sin(rot*0.1)*0.5)+0.5,0.4,0,0.4);
+		Sgp.pushTransform();
+		Sgp.rotateAt(rot*(Math.PI/180),400,400);
+		Sgp.drawFilledRect(300,300,400,300);
+
+		Sgp.popTransform();
+		Sgp.setColor(1,1,1,1);
+
+		final e:SappEvent = Sapp.getLastEvent();
+		if (e!=null)
+		{
+			var i = 0;
+			var cir = ShapePoints.circle2(e.mouse_x,e.mouse_y,(Math.sin(Timer.stamp())*100)+150);
+			while (i<cir.length-2)
+			{
+				Sgp.drawLine(cir[i],cir[i+1],cir[i+2],cir[i+3]);
+				i+=2;
+			}
+		}
+		Sgp.flush();
+
+
+		Sdtx.canvas(w*0.5,h*0.5);
+		Sdtx.origin(4,4);
+		Sdtx.home();
+		Sdtx.font(5);
+		Sdtx.color3b(0x22, 0xff, 0x33);
+		Sdtx.puts('Whats up : ${Math.random()}');
+		Sdtx.crlf();
+		Sdtx.font(1);
+		Sdtx.color3b(0xff, 0x22, 0x33);
+		Sdtx.puts("Thats cool...");
+		Sdtx.crlf();
+		Sdtx.draw();
+
+/*
+
 
 		// Sgp.setColor((Math.sin(rot*0.1)*0.5)+0.5,0.4,0,0.4);
 		// Sgp.rotateAt(rot*(Math.PI/180),0,0);
@@ -133,11 +186,6 @@ class Main
 		// for (y in 0...100)
 		// 	for (x in 0...100)
 		// 		Sgp.drawPoint(x*10,y*10);
-
-		// var pts:HLArray<SgpPoint> = HLArray.alloc(5000);
-		// for (i in 0...pts.length)
-			// pts[i]=({x:Math.random()*100,y:Math.random()*100}:SgpPoint);
-		// Sgp.drawPoints(pts,pts.length);
 
 		// Sgp.drawLinesStrip(pts,5000);
 
@@ -161,7 +209,7 @@ class Main
 		// Sgp.drawLines(lns,400);
 
 		// Sg.beginDefaultPass(w,h);
-		Sgp.flush();
+*/		
 		Sgp.end();
 		
 		Sg.endPass();
@@ -172,8 +220,15 @@ class Main
 
 	static function shutdown()
 	{
+		Sdtx.shutdown();
 		Sgp.shutdown();
 		Sg.shutdown();
+	}
+
+	static function event(e2:SappEvent)
+	{
+		final e:SappEvent = Sapp.getLastEvent();
+		trace(e.type);
 	}
 }
 
@@ -203,4 +258,43 @@ class Main
 	var vals	: HLArray<Single>;
 	var valz	: HLArray<HLString>;
 	var doh		: TPoint;
+}
+
+
+
+
+class ShapePoints
+{
+
+	public static function circle2(cx: Float, cy: Float, radius: Float, segments: Int = 0):Array<Float>
+	{
+		// radius += strength / 2;
+
+		if (segments <= 0)
+			segments = Math.floor(10 * Math.sqrt(radius));
+
+		var theta = 2 * Math.PI / segments;
+		var c = Math.cos(theta);
+		var s = Math.sin(theta);
+
+		var x = radius;
+		var y = 0.0;
+
+		var cp:Array<Float> = [];
+		for (n in 0...segments)
+		{
+			// var px = x + cx;
+			// var py = y + cy;
+
+			var t = x;
+			x = c * x - s * y;
+			y = c * y + s * t;
+			cp.push(x+cx);
+			cp.push(y+cy);
+		}
+		cp.push(cp[0]);
+		cp.push(cp[1]);
+		return cp;
+	}
+
 }

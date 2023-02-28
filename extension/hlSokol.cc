@@ -15,6 +15,14 @@
 #include "sokol_gp.h"
 #include "sokol_app.h"
 #include "sokol_glue.h"
+#include "sokol_debugtext.h"
+
+#define FONT_KC853 (0)
+#define FONT_KC854 (1)
+#define FONT_Z1013 (2)
+#define FONT_CPC   (3)
+#define FONT_C64   (4)
+#define FONT_ORIC  (5)
 
 //#define _SG_BUFFER _ABSTRACT(sg_buffer)
 //#define _SG_BINDINGS _ABSTRACT(sg_bindings*)
@@ -136,7 +144,7 @@ HL_PRIM sg_pipeline HL_NAME(sgMakePipeline)(sg_shader shd)
     
 } DEFINE_PRIM(_STRUCT, sgMakePipeline, _STRUCT );
 HL_PRIM void HL_NAME(sgApplyPipeline)(sg_pipeline pipeline) { sg_apply_pipeline(pipeline); } DEFINE_PRIM(_VOID, sgApplyPipeline, _STRUCT);
-HL_PRIM void HL_NAME(sgApplyBindings)(const sg_bindings* bind) { sg_apply_bindings(bind); } DEFINE_PRIM(_VOID, sgApplyBindings, _STRUCT);
+HL_PRIM void HL_NAME(sgApplyBindings)(const sg_bindings bind) { sg_apply_bindings(&bind); } DEFINE_PRIM(_VOID, sgApplyBindings, _STRUCT);
 HL_PRIM void HL_NAME(sgDraw)(int base_element, int num_elements, int num_instances) { sg_draw(base_element, num_elements, num_instances); } DEFINE_PRIM(_VOID, sgDraw, _I32 _I32 _I32);
 
 HL_PRIM void HL_NAME(d3d11Present)() { d3d11_present(); } DEFINE_PRIM(_VOID, d3d11Present, _NO_ARG);
@@ -219,21 +227,28 @@ HL_PRIM sgp_desc HL_NAME(sgpQueryDesc)() { return sgp_query_desc(); } DEFINE_PRI
 vclosure* cb_init;
 vclosure* cb_frame;
 vclosure* cb_cleanup;
+vclosure* cb_event;
+
+const sapp_event* last_event = {};
+HL_PRIM const sapp_event* HL_NAME(sAppGetLastEvent)() { return last_event; } DEFINE_PRIM(_STRUCT, sAppGetLastEvent, _NO_ARG);
 
 void init(void) { hl_dyn_call(cb_init,NULL,0); }
 void frame(void) { hl_dyn_call(cb_frame,NULL,0); }
 void cleanup(void) { hl_dyn_call(cb_cleanup,NULL,0); }
+void event(const sapp_event* ev) { last_event = ev; hl_dyn_call(cb_event,NULL, 0); }
 
 sapp_desc sokol_main(int argc, char* argv[]) { return {}; }
-HL_PRIM void HL_NAME(sgMain)(vclosure* init_cb, vclosure* frame_cb, vclosure* cleanup_cb, sapp_desc* desc)
+HL_PRIM void HL_NAME(sgMain)(vclosure* init_cb, vclosure* frame_cb, vclosure* cleanup_cb, vclosure* event_cb, sapp_desc* desc)
 {
     hl_add_root(desc);
     cb_init = init_cb;
     cb_frame = frame_cb;
     cb_cleanup = cleanup_cb;
+    cb_event = event_cb;
     hl_add_root(cb_init);
     hl_add_root(cb_frame);
     hl_add_root(cb_cleanup);
+    hl_add_root(cb_event);
 
     int argc_utf8 = 0;
     char** argv_utf8 = _sapp_win32_command_line_to_utf8_argv(GetCommandLineW(), &argc_utf8);
@@ -241,7 +256,87 @@ HL_PRIM void HL_NAME(sgMain)(vclosure* init_cb, vclosure* frame_cb, vclosure* cl
     desc->init_cb = init;
     desc->frame_cb = frame;
     desc->cleanup_cb = cleanup;
+    desc->event_cb = event;
     _sapp_win32_run(desc);
     _sapp_free(argv_utf8);
 }
-DEFINE_PRIM(_VOID, sgMain, _FUN(_VOID, _NO_ARG) _FUN(_VOID, _NO_ARG) _FUN(_VOID, _NO_ARG) _STRUCT)
+DEFINE_PRIM(_VOID, sgMain, _FUN(_VOID, _NO_ARG) _FUN(_VOID, _NO_ARG) _FUN(_VOID, _NO_ARG) _FUN(_VOID, _NO_ARG) _STRUCT)
+
+//static void input(const sapp_event* ev) {
+//    switch (ev->type) {
+//    case SAPP_EVENTTYPE_MOUSE_DOWN:
+//        if (ev->mouse_button == SAPP_MOUSEBUTTON_LEFT) {
+//            sapp_lock_mouse(true);
+//        }
+//        break;
+//
+//    case SAPP_EVENTTYPE_MOUSE_UP:
+//        if (ev->mouse_button == SAPP_MOUSEBUTTON_LEFT) {
+//            sapp_lock_mouse(false);
+//        }
+//        break;
+//
+//    case SAPP_EVENTTYPE_MOUSE_MOVE:
+//        if (sapp_mouse_locked()) {
+//            cam_orbit(&state.camera, ev->mouse_dx * 0.25f, ev->mouse_dy * 0.25f);
+//        }
+//        break;
+//
+//    default:
+//        break;
+//    }
+//}
+
+
+HL_PRIM void HL_NAME(sdtxSetup)()
+{
+    sdtx_desc_t sdtx = {};
+    sdtx.fonts[FONT_KC853] = sdtx_font_kc853();
+    sdtx.fonts[FONT_KC854] = sdtx_font_kc854();
+    sdtx.fonts[FONT_Z1013] = sdtx_font_z1013();
+    sdtx.fonts[FONT_CPC] = sdtx_font_cpc();
+    sdtx.fonts[FONT_C64] = sdtx_font_c64();
+    sdtx.fonts[FONT_ORIC] = sdtx_font_oric();
+    sdtx_setup(&sdtx);
+
+} DEFINE_PRIM(_VOID, sdtxSetup, _NO_ARG);
+
+HL_PRIM void HL_NAME(sdtxShutdown)() { sdtx_shutdown(); } DEFINE_PRIM(_VOID, sdtxShutdown, _NO_ARG);
+HL_PRIM void HL_NAME(sdtxCanvas)(float w, float h) { sdtx_canvas(w,h); } DEFINE_PRIM(_VOID, sdtxCanvas, _F32 _F32);
+HL_PRIM void HL_NAME(sdtxOrigin)(float x, float y) { sdtx_origin(x,y); } DEFINE_PRIM(_VOID, sdtxOrigin, _F32 _F32);
+HL_PRIM void HL_NAME(sdtxHome)() { sdtx_home(); } DEFINE_PRIM(_VOID, sdtxHome, _NO_ARG);
+HL_PRIM void HL_NAME(sdtxFont)(int font_index) { sdtx_font(font_index); } DEFINE_PRIM(_VOID, sdtxFont, _I32);
+HL_PRIM void HL_NAME(sdtxColor3b)(uint8_t r, uint8_t g, uint8_t b) { sdtx_color3b(r,g,b); } DEFINE_PRIM(_VOID, sdtxColor3b, _I32 _I32 _I32);
+HL_PRIM void HL_NAME(sdtxPuts)(const char* str) { sdtx_puts(str); } DEFINE_PRIM(_VOID, sdtxPuts, _BYTES);
+HL_PRIM void HL_NAME(sdtxPutc)(char chr) { sdtx_putc(chr); } DEFINE_PRIM(_VOID, sdtxPutc, _I32);
+HL_PRIM void HL_NAME(sdtxCrlf)() { sdtx_crlf(); } DEFINE_PRIM(_VOID, sdtxCrlf, _NO_ARG);
+
+static void print_font(int font_index, const char* title, uint8_t r, uint8_t g, uint8_t b) {
+    sdtx_font(font_index);
+    sdtx_color3b(r, g, b);
+    sdtx_puts(title);
+    for (int c = 32; c < 256; c++) {
+        sdtx_putc(c);
+        if (((c + 1) & 63) == 0) {
+            sdtx_crlf();
+        }
+    }
+    sdtx_crlf();
+}
+
+HL_PRIM void HL_NAME(sdtxTest)()
+{
+    // set virtual canvas size to half display size so that
+    // glyphs are 16x16 display pixels
+    sdtx_canvas(sapp_width() * 0.5f, sapp_height() * 0.5f);
+    sdtx_origin(0.0f, 2.0f);
+    sdtx_home();
+    print_font(FONT_KC853, "KC85/3:\n", 0xf4, 0x43, 0x36);
+    print_font(FONT_KC854, "KC85/4:\n", 0x21, 0x96, 0xf3);
+    print_font(FONT_Z1013, "Z1013:\n", 0x4c, 0xaf, 0x50);
+    print_font(FONT_CPC, "Amstrad CPC:\n", 0xff, 0xeb, 0x3b);
+    print_font(FONT_C64, "C64:\n", 0x79, 0x86, 0xcb);
+    print_font(FONT_ORIC, "Oric Atmos:\n", 0xff, 0x98, 0x00);
+
+} DEFINE_PRIM(_VOID, sdtxTest, _NO_ARG);
+HL_PRIM void HL_NAME(sdtxDraw)() { sdtx_draw(); } DEFINE_PRIM(_VOID, sdtxDraw, _NO_ARG);
