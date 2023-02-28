@@ -47,6 +47,8 @@ class Sapp
 	@:hlNative("hlSokol","sAppWidth")				static public function width():Int { return 0; }
 	@:hlNative("hlSokol","sAppHeight")				static public function height():Int { return 0; }
 	@:hlNative("hlSokol","sAppGetLastEvent")		static public function getLastEvent():SappEvent { return null; }
+	@:hlNative("hlSokol","sAppIsFullscreen")		static public function isFullscreen():Bool { return false; }
+	@:hlNative("hlSokol","sAppToggleFullscreen")	static public function toggleFullscreen() { }
 
 	/////////////////////////////////////////////////////////////////////////////////////
 }

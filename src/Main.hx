@@ -1,5 +1,7 @@
 package;
 
+import Sokol.SappKeycode;
+import Sokol.SappEventType;
 import Sokol.SappEvent;
 import Sokol.SgPipeline;
 import Sokol.SgBindings;
@@ -228,6 +230,9 @@ class Main
 	static function event()
 	{
 		final e:SappEvent = Sapp.getLastEvent();
+		if (e.type == SappEventType.SAPP_EVENTTYPE_KEY_DOWN && e.key_code==SappKeycode.SAPP_KEYCODE_F)
+			Sapp.toggleFullscreen();
+		
 	}
 }
 

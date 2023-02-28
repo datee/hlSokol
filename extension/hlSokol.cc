@@ -156,7 +156,8 @@ HL_PRIM int HL_NAME(d3d11Height)() { return d3d11_height(); } DEFINE_PRIM(_I32, 
 
 HL_PRIM int HL_NAME(sAppWidth)() { return sapp_width(); } DEFINE_PRIM(_I32, sAppWidth, _NO_ARG);
 HL_PRIM int HL_NAME(sAppHeight)() { return sapp_height(); } DEFINE_PRIM(_I32, sAppHeight, _NO_ARG);
-
+HL_PRIM bool HL_NAME(sAppIsFullscreen)() { return sapp_is_fullscreen(); } DEFINE_PRIM(_BOOL, sAppIsFullscreen, _NO_ARG);
+HL_PRIM void HL_NAME(sAppToggleFullscreen)() { sapp_toggle_fullscreen(); } DEFINE_PRIM(_VOID, sAppToggleFullscreen, _NO_ARG);
 
 // Initialize Sokol GP, adjust the size of command buffers for your own use.
 HL_PRIM void HL_NAME(sgpSetup)(){ sgp_desc sgpdesc = { 0 }; sgp_setup(&sgpdesc); } DEFINE_PRIM(_VOID, sgpSetup, _NO_ARG);
