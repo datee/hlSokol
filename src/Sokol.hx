@@ -43,7 +43,7 @@ class Sapp
 {
 	/////////////////////////////////////////////////////////////////////////////////////
 
-	@:hlNative("hlSokol","sgMain")					static public function start(cbInit:Void->Void,cbFrame:Void->Void,cbCleanup:Void->Void,cbEvent:SappEvent->Void,desc:SappDesc) {}
+	@:hlNative("hlSokol","sgMain")					static public function start(cbInit:Void->Void,cbFrame:Void->Void,cbCleanup:Void->Void,cbEvent:Void->Void,desc:SappDesc) {}
 	@:hlNative("hlSokol","sAppWidth")				static public function width():Int { return 0; }
 	@:hlNative("hlSokol","sAppHeight")				static public function height():Int { return 0; }
 	@:hlNative("hlSokol","sAppGetLastEvent")		static public function getLastEvent():SappEvent { return null; }
@@ -217,6 +217,13 @@ abstract HLArray<T>(hl.NativeArray<T>)
 	}	
 }
 
+@:publicFields @:struct @:keep @:structInit class SgBuffer { var id:Int; }
+@:publicFields @:struct @:keep @:structInit class SgImage { var id:Int; }
+@:publicFields @:struct @:keep @:structInit class SgShader { var id:Int; }
+@:publicFields @:struct @:keep @:structInit class SgPipeline { var id:Int; }
+@:publicFields @:struct @:keep @:structInit class SgPass { var id:Int; }
+@:publicFields @:struct @:keep @:structInit class SgContext { var id:Int; }
+
 @:publicFields @:struct @:keep @:structInit class SgpDesc
 {
 	var max_vertices:Int;
@@ -383,9 +390,9 @@ typedef SgpVec2 = SgpPoint;
 
 @:publicFields @:struct @:keep @:structInit class SappEvent
 {
-	@:optional var frame_count				: Int;				// current frame counter, always valid, useful for checking if two events were issued in the same frame
+	@:optional var frame_count				: hl.I64;				// current frame counter, always valid, useful for checking if two events were issued in the same frame
 	@:optional var type						: SappEventType;	// the event type, always valid
-	@:optional var key_code					: hl.Abstract<"sapp_keycode">;	// the virtual key code, only valid in KEY_UP, KEY_DOWN
+	@:optional var key_code					: SappKeycode;		// the virtual key code, only valid in KEY_UP, KEY_DOWN
 	@:optional var char_code				: Int;				// the UTF-32 character code, only valid in CHAR events
 	@:optional var key_repeat				: Bool;				// true if this is a key-repeat event, valid in KEY_UP, KEY_DOWN and CHAR
 	@:optional var modifiers				: Int;				// current modifier keys, valid in all key-, char- and mouse-events
@@ -397,19 +404,21 @@ typedef SgpVec2 = SgpPoint;
 	@:optional var scroll_x					: Single;			// horizontal mouse wheel scroll distance, valid in MOUSE_SCROLL events
 	@:optional var scroll_y					: Single;			// vertical mouse wheel scroll distance, valid in MOUSE_SCROLL events
 	@:optional var int						: Int;				// number of valid items in the touches[] array
-	@:optional var touches					: HLArray<hl.Abstract<"sapp_touchpoint">> = HLArray.alloc(10); // current touch points, valid in TOUCHES_BEGIN, TOUCHES_MOVED, TOUCHES_ENDED
+	@:optional var touches					: HLArray<StouchPoint> = HLArray.alloc(10); // current touch points, valid in TOUCHES_BEGIN, TOUCHES_MOVED, TOUCHES_ENDED
 	@:optional var window_width				: Int;				// current window- and framebuffer sizes in pixels, always valid
 	@:optional var window_height			: Int;
 	@:optional var framebuffer_width		: Int;				// = window_width * dpi_scale
 	@:optional var framebuffer_height		: Int;				// = window_height * dpi_scale
 }
 
-@:publicFields @:struct @:keep @:structInit class SgBuffer { var id:Int; }
-@:publicFields @:struct @:keep @:structInit class SgImage { var id:Int; }
-@:publicFields @:struct @:keep @:structInit class SgShader { var id:Int; }
-@:publicFields @:struct @:keep @:structInit class SgPipeline { var id:Int; }
-@:publicFields @:struct @:keep @:structInit class SgPass { var id:Int; }
-@:publicFields @:struct @:keep @:structInit class SgContext { var id:Int; }
+@:publicFields @:struct @:keep @:structInit class StouchPoint
+{
+	@:optional var frame_count				: Int;
+	@:optional var pos_x					: Single;
+	@:optional var pos_y					: Single;
+	@:optional var android_tooltype			: hl.Abstract<"sapp_android_tooltype">; // only valid on Android
+	@:optional var changed					: Bool;
+}
 
 enum abstract SgpBlendMode(Int)
 {
@@ -474,5 +483,130 @@ enum abstract SappMouseButton(Int)
     var SAPP_MOUSEBUTTON_RIGHT = 0x1;
     var SAPP_MOUSEBUTTON_MIDDLE = 0x2;
     var SAPP_MOUSEBUTTON_INVALID = 0x100;
+}
+
+enum abstract SappKeycode(Int)
+{
+    var SAPP_KEYCODE_INVALID          = 0;
+    var SAPP_KEYCODE_SPACE            = 32;
+    var SAPP_KEYCODE_APOSTROPHE       = 39;  /* ' */
+    var SAPP_KEYCODE_COMMA            = 44;  /* , */
+    var SAPP_KEYCODE_MINUS            = 45;  /* - */
+    var SAPP_KEYCODE_PERIOD           = 46;  /* . */
+    var SAPP_KEYCODE_SLASH            = 47;  /* / */
+    var SAPP_KEYCODE_0                = 48;
+    var SAPP_KEYCODE_1                = 49;
+    var SAPP_KEYCODE_2                = 50;
+    var SAPP_KEYCODE_3                = 51;
+    var SAPP_KEYCODE_4                = 52;
+    var SAPP_KEYCODE_5                = 53;
+    var SAPP_KEYCODE_6                = 54;
+    var SAPP_KEYCODE_7                = 55;
+    var SAPP_KEYCODE_8                = 56;
+    var SAPP_KEYCODE_9                = 57;
+    var SAPP_KEYCODE_SEMICOLON        = 59;  /* ; */
+    var SAPP_KEYCODE_EQUAL            = 61;  /* = */
+    var SAPP_KEYCODE_A                = 65;
+    var SAPP_KEYCODE_B                = 66;
+    var SAPP_KEYCODE_C                = 67;
+    var SAPP_KEYCODE_D                = 68;
+    var SAPP_KEYCODE_E                = 69;
+    var SAPP_KEYCODE_F                = 70;
+    var SAPP_KEYCODE_G                = 71;
+    var SAPP_KEYCODE_H                = 72;
+    var SAPP_KEYCODE_I                = 73;
+    var SAPP_KEYCODE_J                = 74;
+    var SAPP_KEYCODE_K                = 75;
+    var SAPP_KEYCODE_L                = 76;
+    var SAPP_KEYCODE_M                = 77;
+    var SAPP_KEYCODE_N                = 78;
+    var SAPP_KEYCODE_O                = 79;
+    var SAPP_KEYCODE_P                = 80;
+    var SAPP_KEYCODE_Q                = 81;
+    var SAPP_KEYCODE_R                = 82;
+    var SAPP_KEYCODE_S                = 83;
+    var SAPP_KEYCODE_T                = 84;
+    var SAPP_KEYCODE_U                = 85;
+    var SAPP_KEYCODE_V                = 86;
+    var SAPP_KEYCODE_W                = 87;
+    var SAPP_KEYCODE_X                = 88;
+    var SAPP_KEYCODE_Y                = 89;
+    var SAPP_KEYCODE_Z                = 90;
+    var SAPP_KEYCODE_LEFT_BRACKET     = 91;  /* [ */
+    var SAPP_KEYCODE_BACKSLASH        = 92;  /* \ */
+    var SAPP_KEYCODE_RIGHT_BRACKET    = 93;  /* ] */
+    var SAPP_KEYCODE_GRAVE_ACCENT     = 96;  /* ` */
+    var SAPP_KEYCODE_WORLD_1          = 161; /* non-US #1 */
+    var SAPP_KEYCODE_WORLD_2          = 162; /* non-US #2 */
+    var SAPP_KEYCODE_ESCAPE           = 256;
+    var SAPP_KEYCODE_ENTER            = 257;
+    var SAPP_KEYCODE_TAB              = 258;
+    var SAPP_KEYCODE_BACKSPACE        = 259;
+    var SAPP_KEYCODE_INSERT           = 260;
+    var SAPP_KEYCODE_DELETE           = 261;
+    var SAPP_KEYCODE_RIGHT            = 262;
+    var SAPP_KEYCODE_LEFT             = 263;
+    var SAPP_KEYCODE_DOWN             = 264;
+    var SAPP_KEYCODE_UP               = 265;
+    var SAPP_KEYCODE_PAGE_UP          = 266;
+    var SAPP_KEYCODE_PAGE_DOWN        = 267;
+    var SAPP_KEYCODE_HOME             = 268;
+    var SAPP_KEYCODE_END              = 269;
+    var SAPP_KEYCODE_CAPS_LOCK        = 280;
+    var SAPP_KEYCODE_SCROLL_LOCK      = 281;
+    var SAPP_KEYCODE_NUM_LOCK         = 282;
+    var SAPP_KEYCODE_PRINT_SCREEN     = 283;
+    var SAPP_KEYCODE_PAUSE            = 284;
+    var SAPP_KEYCODE_F1               = 290;
+    var SAPP_KEYCODE_F2               = 291;
+    var SAPP_KEYCODE_F3               = 292;
+    var SAPP_KEYCODE_F4               = 293;
+    var SAPP_KEYCODE_F5               = 294;
+    var SAPP_KEYCODE_F6               = 295;
+    var SAPP_KEYCODE_F7               = 296;
+    var SAPP_KEYCODE_F8               = 297;
+    var SAPP_KEYCODE_F9               = 298;
+    var SAPP_KEYCODE_F10              = 299;
+    var SAPP_KEYCODE_F11              = 300;
+    var SAPP_KEYCODE_F12              = 301;
+    var SAPP_KEYCODE_F13              = 302;
+    var SAPP_KEYCODE_F14              = 303;
+    var SAPP_KEYCODE_F15              = 304;
+    var SAPP_KEYCODE_F16              = 305;
+    var SAPP_KEYCODE_F17              = 306;
+    var SAPP_KEYCODE_F18              = 307;
+    var SAPP_KEYCODE_F19              = 308;
+    var SAPP_KEYCODE_F20              = 309;
+    var SAPP_KEYCODE_F21              = 310;
+    var SAPP_KEYCODE_F22              = 311;
+    var SAPP_KEYCODE_F23              = 312;
+    var SAPP_KEYCODE_F24              = 313;
+    var SAPP_KEYCODE_F25              = 314;
+    var SAPP_KEYCODE_KP_0             = 320;
+    var SAPP_KEYCODE_KP_1             = 321;
+    var SAPP_KEYCODE_KP_2             = 322;
+    var SAPP_KEYCODE_KP_3             = 323;
+    var SAPP_KEYCODE_KP_4             = 324;
+    var SAPP_KEYCODE_KP_5             = 325;
+    var SAPP_KEYCODE_KP_6             = 326;
+    var SAPP_KEYCODE_KP_7             = 327;
+    var SAPP_KEYCODE_KP_8             = 328;
+    var SAPP_KEYCODE_KP_9             = 329;
+    var SAPP_KEYCODE_KP_DECIMAL       = 330;
+    var SAPP_KEYCODE_KP_DIVIDE        = 331;
+    var SAPP_KEYCODE_KP_MULTIPLY      = 332;
+    var SAPP_KEYCODE_KP_SUBTRACT      = 333;
+    var SAPP_KEYCODE_KP_ADD           = 334;
+    var SAPP_KEYCODE_KP_ENTER         = 335;
+    var SAPP_KEYCODE_KP_EQUAL         = 336;
+    var SAPP_KEYCODE_LEFT_SHIFT       = 340;
+    var SAPP_KEYCODE_LEFT_CONTROL     = 341;
+    var SAPP_KEYCODE_LEFT_ALT         = 342;
+    var SAPP_KEYCODE_LEFT_SUPER       = 343;
+    var SAPP_KEYCODE_RIGHT_SHIFT      = 344;
+    var SAPP_KEYCODE_RIGHT_CONTROL    = 345;
+    var SAPP_KEYCODE_RIGHT_ALT        = 346;
+    var SAPP_KEYCODE_RIGHT_SUPER      = 347;
+    var SAPP_KEYCODE_MENU             = 348;
 }
 

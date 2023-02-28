@@ -225,10 +225,9 @@ class Main
 		Sg.shutdown();
 	}
 
-	static function event(e2:SappEvent)
+	static function event()
 	{
 		final e:SappEvent = Sapp.getLastEvent();
-		trace(e.type);
 	}
 }
 
