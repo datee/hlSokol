@@ -3,5 +3,6 @@
   <ItemGroup>
     <ClCompile Include="hlSokol.cc" />
     <ClCompile Include="d3d11entry.c" />
+    <ClCompile Include="include/fileutil.c" />
   </ItemGroup>
 </Project>

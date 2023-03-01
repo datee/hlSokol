@@ -145,6 +145,30 @@ class Sdtx
 	/////////////////////////////////////////////////////////////////////////////////////
 }
 
+@:hlNative("hlSokol")
+class Sfs
+{
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	@:hlNative("hlSokol","fsIinit")					static public function init() {}
+	@:hlNative("hlSokol","fsTestFrame")				static public function testFrame() {}
+	@:hlNative("hlSokol","fsCleanUp")				static public function cleanUp() {}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+}
+
+@:hlNative("hlSokol")
+class Sgl
+{
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	@:hlNative("hlSokol","sglSetup")				static public function setup() {}
+	@:hlNative("hlSokol","sglShutdown")				static public function shutdown() {}
+	@:hlNative("hlSokol","sglDraw")					static public function draw() {}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+}
+
 abstract HLString(hl.Bytes)
 {
   	inline function new(b:hl.Bytes)
@@ -480,11 +504,10 @@ enum abstract SappEventType(Int)
 
 enum abstract SappMouseButton(Int)
 {
-    var SAPP_EVENTTYPE_INVALID = 0;
-    var SAPP_MOUSEBUTTON_LEFT = 0x0;
-    var SAPP_MOUSEBUTTON_RIGHT = 0x1;
-    var SAPP_MOUSEBUTTON_MIDDLE = 0x2;
-    var SAPP_MOUSEBUTTON_INVALID = 0x100;
+    var SAPP_MOUSEBUTTON_LEFT = 0;
+    var SAPP_MOUSEBUTTON_RIGHT = 1;
+    var SAPP_MOUSEBUTTON_MIDDLE = 2;
+    var SAPP_MOUSEBUTTON_INVALID = 256;
 }
 
 enum abstract SappKeycode(Int)

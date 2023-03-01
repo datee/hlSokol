@@ -1,4 +1,4 @@
-#define HL_NAME(n) hlSokol##n
+﻿#define HL_NAME(n) hlSokol##n
 
 #include "hl.h"
 #include <stdio.h>
@@ -12,10 +12,23 @@
 #define SOKOL_D3D11
 #define SOKOL_LOG(s) OutputDebugStringA(s)
 #include "sokol_gfx.h"
+#include "sokol_fetch.h"
+//#include "sokol_log.h"
+#include "sokol_glue.h"
 #include "sokol_gp.h"
+#include "sokol_gl.h"
 #include "sokol_app.h"
 #include "sokol_glue.h"
 #include "sokol_debugtext.h"
+#define FONTSTASH_IMPLEMENTATION
+#if defined(_MSC_VER )
+#pragma warning(disable:4996)   // strncpy use in fontstash.h
+#endif
+#include "fontstash.h"
+#define SOKOL_FONTSTASH_IMPL
+#include "sokol_fontstash.h"
+//#include "dbgui/dbgui.h"
+#include "fileutil.h"
 
 #define FONT_KC853 (0)
 #define FONT_KC854 (1)
@@ -341,3 +354,285 @@ HL_PRIM void HL_NAME(sdtxTest)()
 
 } DEFINE_PRIM(_VOID, sdtxTest, _NO_ARG);
 HL_PRIM void HL_NAME(sdtxDraw)() { sdtx_draw(); } DEFINE_PRIM(_VOID, sdtxDraw, _NO_ARG);
+
+
+
+
+
+
+
+
+typedef struct {
+    FONScontext* fons;
+    float dpi_scale;
+    int font_normal;
+    int font_italic;
+    int font_bold;
+    uint8_t font_normal_data[256 * 1024];
+    uint8_t font_italic_data[256 * 1024];
+    uint8_t font_bold_data[256 * 1024];
+} state_t;
+state_t state;
+
+/* optional memory allocation function overrides (see sfons_create()) */
+void* my_alloc(size_t size, void* user_data) {
+    (void)user_data;
+    return malloc(size);
+}
+
+void my_free(void* ptr, void* user_data) {
+    (void)user_data;
+    free(ptr);
+}
+
+/* sokol-fetch load callbacks */
+void font_normal_loaded(const sfetch_response_t* response) {
+    if (response->fetched) {
+        state.font_normal = fonsAddFontMem(state.fons, "sans", (unsigned char*)response->data.ptr, (int)response->data.size, false);
+    }
+}
+
+void font_italic_loaded(const sfetch_response_t* response) {
+    if (response->fetched) {
+        state.font_italic = fonsAddFontMem(state.fons, "sans-italic", (unsigned char*)response->data.ptr, (int)response->data.size, false);
+    }
+}
+
+void font_bold_loaded(const sfetch_response_t* response) {
+    if (response->fetched) {
+        state.font_bold = fonsAddFontMem(state.fons, "sans-bold", (unsigned char*)response->data.ptr, (int)response->data.size, false);
+    }
+}
+
+/* round to next power of 2 (see bit-twiddling-hacks) */
+static int round_pow2(float v) {
+    uint32_t vi = ((uint32_t)v) - 1;
+    for (uint32_t i = 0; i < 5; i++) {
+        vi |= (vi >> (1 << i));
+    }
+    return (int)(vi + 1);
+}
+
+HL_PRIM void HL_NAME(fsIinit)()
+{
+    state.dpi_scale = sapp_dpi_scale();
+
+    /* make sure the fontstash atlas width/height is pow-2 */
+    const int atlas_dim = round_pow2(512.0f * state.dpi_scale);
+    sfons_desc_t fons_desc = {
+        .width = atlas_dim,
+            .height = atlas_dim,
+            // allocator functions are optional, just check if it works
+            .allocator = {
+                .alloc = my_alloc,
+                .free = my_free,
+        }
+    };
+    FONScontext* fons_context = sfons_create(&fons_desc);
+    state.fons = fons_context;
+    state.font_normal = FONS_INVALID;
+    state.font_italic = FONS_INVALID;
+    state.font_bold = FONS_INVALID;
+
+    /* use sokol_fetch for loading the TTF font files */
+    sfetch_desc_t sfetchdesc  = { .num_channels = 1, .num_lanes = 4 };
+    sfetch_setup(&sfetchdesc);
+
+    char path_buf[512];
+    sfetch_request_t req1 = {
+        .path = fileutil_get_path("DroidSerif-Regular.ttf", path_buf, sizeof(path_buf)),
+            .callback = font_normal_loaded,
+            .buffer = SFETCH_RANGE(state.font_normal_data),
+    };
+    sfetch_send(&req1);
+    sfetch_request_t req2 = {
+        .path = fileutil_get_path("DroidSerif-Bold.ttf", path_buf, sizeof(path_buf)),
+            .callback = font_bold_loaded,
+            .buffer = SFETCH_RANGE(state.font_bold_data),
+    };
+    sfetch_send(&req2);
+    sfetch_request_t req3 = {
+        .path = fileutil_get_path("DroidSerif-Italic.ttf", path_buf, sizeof(path_buf)),
+            .callback = font_italic_loaded,
+            .buffer = SFETCH_RANGE(state.font_italic_data),
+    };
+    sfetch_send(&req3);
+
+} DEFINE_PRIM(_VOID, fsIinit, _NO_ARG);
+
+
+static void line(float sx, float sy, float ex, float ey)
+{
+    //sgl_begin_lines();
+    //sgl_c4b(255, 255, 0, 128);
+    //sgl_v2f(sx, sy);
+    //sgl_v2f(ex, ey);
+    //sgl_end();
+}
+
+HL_PRIM void HL_NAME(fsTestFrame)()
+{
+    const float dpis = state.dpi_scale;
+
+    /* pump sokol_fetch message queues */
+    sfetch_dowork();
+
+    /* text rendering via fontstash.h */
+    float sx, sy, dx, dy, lh = 0.0f;
+    uint32_t white = sfons_rgba(255, 255, 255, 255);
+    uint32_t black = sfons_rgba(0, 0, 0, 255);
+    uint32_t brown = sfons_rgba(192, 128, 0, 128);
+    uint32_t blue = sfons_rgba(0, 192, 255, 255);
+    fonsClearState(state.fons);
+
+    sgl_defaults();
+    sgl_matrix_mode_projection();
+    sgl_ortho(0.0f, sapp_widthf(), sapp_heightf(), 0.0f, -1.0f, +1.0f);
+
+    sx = 50 * dpis; sy = 50 * dpis;
+    dx = sx; dy = sy;
+
+    FONScontext* fs = state.fons;
+    if (state.font_normal != FONS_INVALID) {
+        fonsSetFont(fs, state.font_normal);
+        fonsSetSize(fs, 124.0f * dpis);
+        fonsVertMetrics(fs, NULL, NULL, &lh);
+        dx = sx;
+        dy += lh;
+        fonsSetColor(fs, white);
+        dx = fonsDrawText(fs, dx, dy, "The quick ", NULL);
+    }
+    if (state.font_italic != FONS_INVALID) {
+        fonsSetFont(fs, state.font_italic);
+        fonsSetSize(fs, 48.0f * dpis);
+        fonsSetColor(fs, brown);
+        dx = fonsDrawText(fs, dx, dy, "brown ", NULL);
+    }
+    if (state.font_normal != FONS_INVALID) {
+        fonsSetFont(fs, state.font_normal);
+        fonsSetSize(fs, 24.0f * dpis);
+        fonsSetColor(fs, white);
+        dx = fonsDrawText(fs, dx, dy, "fox ", NULL);
+    }
+    if ((state.font_normal != FONS_INVALID) && (state.font_italic != FONS_INVALID) && (state.font_bold != FONS_INVALID)) {
+        fonsVertMetrics(fs, NULL, NULL, &lh);
+        dx = sx;
+        dy += lh * 1.2f;
+        fonsSetFont(fs, state.font_italic);
+        dx = fonsDrawText(fs, dx, dy, "jumps over ", NULL);
+        fonsSetFont(fs, state.font_bold);
+        dx = fonsDrawText(fs, dx, dy, "the lazy ", NULL);
+        fonsSetFont(fs, state.font_normal);
+        dx = fonsDrawText(fs, dx, dy, "dog.", NULL);
+    }
+    if (state.font_normal != FONS_INVALID) {
+        dx = sx;
+        dy += lh * 1.2f;
+        fonsSetSize(fs, 12.0f * dpis);
+        fonsSetFont(fs, state.font_normal);
+        fonsSetColor(fs, blue);
+        fonsDrawText(fs, dx, dy, "Now is the time for all good men to come to the aid of the party.", NULL);
+    }
+    if (state.font_italic != FONS_INVALID) {
+        fonsVertMetrics(fs, NULL, NULL, &lh);
+        dx = sx;
+        dy += lh * 1.2f * 2;
+        fonsSetSize(fs, 18.0f * dpis);
+        fonsSetFont(fs, state.font_italic);
+        fonsSetColor(fs, white);
+        fonsDrawText(fs, dx, dy, "Ég get etið gler án þess að meiða mig.", NULL);
+    }
+
+    /* Font alignment */
+    if (state.font_normal != FONS_INVALID) {
+        fonsSetSize(fs, 18.0f * dpis);
+        fonsSetFont(fs, state.font_normal);
+        fonsSetColor(fs, white);
+        dx = 50 * dpis; dy = 350 * dpis;
+        line(dx - 10 * dpis, dy, dx + 250 * dpis, dy);
+        fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_TOP);
+        dx = fonsDrawText(fs, dx, dy, "Top", NULL);
+        dx += 10 * dpis;
+        fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_MIDDLE);
+        dx = fonsDrawText(fs, dx, dy, "Middle", NULL);
+        dx += 10 * dpis;
+        fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_BASELINE);
+        dx = fonsDrawText(fs, dx, dy, "Baseline", NULL);
+        dx += 10 * dpis;
+        fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_BOTTOM);
+        fonsDrawText(fs, dx, dy, "Bottom", NULL);
+        dx = 150 * dpis; dy = 400 * dpis;
+        line(dx, dy - 30 * dpis, dx, dy + 80.0f * dpis);
+        fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_BASELINE);
+        fonsDrawText(fs, dx, dy, "Left", NULL);
+        dy += 30 * dpis;
+        fonsSetAlign(fs, FONS_ALIGN_CENTER | FONS_ALIGN_BASELINE);
+        fonsDrawText(fs, dx, dy, "Center", NULL);
+        dy += 30 * dpis;
+        fonsSetAlign(fs, FONS_ALIGN_RIGHT | FONS_ALIGN_BASELINE);
+        fonsDrawText(fs, dx, dy, "Right", NULL);
+    }
+
+    /* Blur */
+    if (state.font_italic != FONS_INVALID) {
+        dx = 500 * dpis; dy = 350 * dpis;
+        fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_BASELINE);
+        fonsSetSize(fs, 60.0f * dpis);
+        fonsSetFont(fs, state.font_italic);
+        fonsSetColor(fs, white);
+        fonsSetSpacing(fs, 5.0f * dpis);
+        fonsSetBlur(fs, 10.0f);
+        fonsDrawText(fs, dx, dy, "Blurry...", NULL);
+    }
+
+    if (state.font_bold != FONS_INVALID) {
+        dy += 50.0f * dpis;
+        fonsSetSize(fs, 18.0f * dpis);
+        fonsSetFont(fs, state.font_bold);
+        fonsSetColor(fs, black);
+        fonsSetSpacing(fs, 0.0f);
+        fonsSetBlur(fs, 3.0f);
+        fonsDrawText(fs, dx, dy + 2, "DROP THAT SHADOW", NULL);
+        fonsSetColor(fs, white);
+        fonsSetBlur(fs, 0);
+        fonsDrawText(fs, dx, dy, "DROP THAT SHADOW", NULL);
+    }
+
+    /* flush fontstash's font atlas to sokol-gfx texture */
+    sfons_flush(fs);
+
+    ///* render pass */
+    //sg_begin_default_pass(&(sg_pass_action) {
+    //    .colors[0] = {
+    //        .action = SG_ACTION_CLEAR, .value = { 0.3f, 0.3f, 0.32f, 1.0f }
+    //    }
+    //}, sapp_width(), sapp_height());
+} DEFINE_PRIM(_VOID, fsTestFrame, _NO_ARG);
+
+HL_PRIM void HL_NAME(fsCleanUp)()
+{
+    sfetch_shutdown();
+    sfons_destroy(state.fons);
+
+} DEFINE_PRIM(_VOID, fsCleanUp, _NO_ARG);
+HL_PRIM void HL_NAME(sglSetup)() { sgl_desc_t sglDesc = {}; sgl_setup(&sglDesc); } DEFINE_PRIM(_VOID, sglSetup, _NO_ARG);
+HL_PRIM void HL_NAME(sglDraw)() { sgl_draw(); } DEFINE_PRIM(_VOID, sglDraw, _NO_ARG);
+HL_PRIM void HL_NAME(sglShutdown)() { sgl_shutdown(); } DEFINE_PRIM(_VOID, sglShutdown, _NO_ARG);
+
+//sapp_desc sokol_main(int argc, char* argv[]) {
+//    (void)argc;
+//    (void)argv;
+//    return (sapp_desc) {
+//        .init_cb = init,
+//            .frame_cb = frame,
+//            .cleanup_cb = cleanup,
+//            .event_cb = __dbgui_event,
+//            .width = 800,
+//            .height = 600,
+//            .high_dpi = true,
+//            .gl_force_gles2 = true,
+//            .window_title = "fontstash",
+//            .icon.sokol_default = true,
+//            .logger.func = slog_func,
+//    };
+//}

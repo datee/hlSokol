@@ -1,5 +1,8 @@
 package;
 
+import Sokol.Sgl;
+import Sokol.Sfs;
+import Sokol.SappMouseButton;
 import Sokol.SappKeycode;
 import Sokol.SappEventType;
 import Sokol.SappEvent;
@@ -27,14 +30,19 @@ class Main
 	static public function main()
 	{
 		var desc:SappDesc = new SappDesc("What the window...!",1400,800,4,false);
+		desc.high_dpi = true;
+		desc.gl_force_gles2 = true;
 		Sapp.start(init,frame,shutdown,event,desc);
 	}
 
 	static public function init()
 	{
 		Sg.setup();
-		Sgp.setup();
+		Sgl.setup();
+ 		Sgp.setup();
+		Sfs.init();
 		Sdtx.setup();
+		
 		if (!Sgp.isValid())
 		{
 			var err = Sgp.getLastError();
@@ -42,9 +50,9 @@ class Main
 			trace(errMsg);
 			Sys.exit(1);
 		}
-		var vertices:Array<Single> = 
+/*		var vertices:Array<Single> = 
 		[
-			/* positions            colors */
+			//positions            colors
 			0.0, 0.5, 0.5,      1.0, 0.0, 0.0, 1.0,
 			0.5, -0.5, 0.5,     0.0, 1.0, 0.0, 1.0,
 			-0.5, -0.5, 0.5,    0.0, 0.0, 1.0, 1.0
@@ -56,7 +64,7 @@ class Main
 		var vbuf = Sg.makeBuffer(vertices);
 		bind.vertex_buffers[0]=vbuf;
 		var shd = Sg.makeShader();
-		pip = Sg.makePipeline(shd);
+		pip = Sg.makePipeline(shd); */
 	// 	  sg_bindings bind = {
     //     .vertex_buffers[0] = vbuf
     // };
@@ -89,7 +97,7 @@ class Main
 		// var nm=5000;
 		// for (i in 0...nm)
 		// 	pts[i]=({x:Math.random()*2-1,y:Math.random()*2-1}:SgpPoint);
-		lns = HLArray.alloc(20000);
+		// lns = HLArray.alloc(20000);
 		// for (i in 0...400)
 		// {
 		// 	lns[i]=({ax:Math.random()*1920,ay:Math.random()*1080,bx:Math.random()*1920,by:Math.random()*1080}:SgpLine);
@@ -110,21 +118,22 @@ class Main
 		var w = Sapp.width();
 		var h = Sapp.height();
 		var ratio = w/h;
+		Sg.beginDefaultPass(w,h);
 
-		// Sg.beginDefaultPass(w,h);
-		// Sg.applyPipeline(pip);
-		// Sg.applyBindings(bind);
-		// Sg.draw(0,3,1);
-
+/* 		Sg.applyPipeline(pip);
+		Sg.applyBindings(bind);
+		Sg.beginDefaultPass(w,h);
+		Sg.draw(0,3,1);
+ */
 		// Sdtx.test();
 
 
-		Sgp.begin(w,h);
+
+	 	Sgp.begin(w,h);
 		Sgp.viewport(0,0,w,h);
 		Sgp.project(0,w,0,h);
 		// Sgp.translate(-ratio,1);
 		// Sgp.scale(1/w,1/h);
-		Sg.beginDefaultPass(w,h);
 		Sgp.setBlendMode(SGP_BLENDMODE_BLEND);
 
 		Sgp.setColor(0.1,0.1,0.1,1.0);
@@ -146,7 +155,7 @@ class Main
 		if (e!=null)
 		{
 			var i = 0;
-			var cir = ShapePoints.circle2(e.mouse_x,e.mouse_y,(Math.sin(Timer.stamp())*100)+150);
+			var cir = ShapePoints.circle2(mouseDown?e.mouse_x:300,mouseDown?e.mouse_y:300,(Math.sin(Timer.stamp())*100)+150);
 			while (i<cir.length-2)
 			{
 				Sgp.drawLine(cir[i],cir[i+1],cir[i+2],cir[i+3]);
@@ -212,8 +221,10 @@ class Main
 
 		// Sg.beginDefaultPass(w,h);
 */		
-		Sgp.end();
+		Sfs.testFrame();
+		Sgl.draw();
 		
+		Sgp.end();
 		Sg.endPass();
 		Sg.commit();
 
@@ -224,8 +235,12 @@ class Main
 	{
 		Sdtx.shutdown();
 		Sgp.shutdown();
+		Sfs.cleanUp();
+		Sgl.shutdown();
 		Sg.shutdown();
 	}
+
+	static var mouseDown:Bool = false;
 
 	static function event()
 	{
@@ -233,6 +248,8 @@ class Main
 		if (e.type == SappEventType.SAPP_EVENTTYPE_KEY_DOWN && e.key_code==SappKeycode.SAPP_KEYCODE_F)
 			Sapp.toggleFullscreen();
 		
+		if (e.mouse_button!=SappMouseButton.SAPP_MOUSEBUTTON_INVALID)
+			mouseDown=!mouseDown;
 	}
 }
 
