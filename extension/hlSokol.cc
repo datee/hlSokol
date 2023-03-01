@@ -37,23 +37,6 @@
 #define FONT_C64   (4)
 #define FONT_ORIC  (5)
 
-//#define _SG_BUFFER _ABSTRACT(sg_buffer)
-//#define _SG_BINDINGS _ABSTRACT(sg_bindings*)
-//#define _SG_ERROR _ABSTRACT(sgp_error)
-//#define _SG_BLENDMODE _ABSTRACT(sgp_blend_mode)
-//#define _SG_PIPELINE _ABSTRACT(sg_pipeline)
-//#define _SG_PIPELINE_DESC _ABSTRACT(sgp_pipeline_desc)
-//#define _SG_IMAGE _ABSTRACT(sg_image)
-//#define _SG_POINTS _ABSTRACT(sgp_point*)
-//#define _SG_LINES _ABSTRACT(sgp_line*)
-//#define _SG_TRIANGLES _ABSTRACT(sgp_triangle*)
-//#define _SG_RECT _ABSTRACT(sgp_rect)
-//#define _SG_RECTS _ABSTRACT(sgp_rect*)
-//#define _SG_TEXTURED_RECTS _ABSTRACT(sgp_textured_rect*)
-//#define _SGP_STATE _ABSTRACT(sgp_state*)
-//#define _SGP_DESC _ABSTRACT(sgp_desc)
-//#define _DEVICEINFO _OBJ(_BYTES _BYTES)
-
 /////////////////////////////////////////////////////////////////////////////////////
 
 wchar_t* cStrToWChar(char* str)
@@ -66,6 +49,15 @@ wchar_t* cStrToWChar(char* str)
 float* varrToFloats(varray* arr) { return (float*)(hl_aptr(arr, float)); }
 int* varrToInts(varray* arr) { return (int*)(hl_aptr(arr, int)); }
 char** varrToChars(varray* arr) { return (char**)(hl_aptr(arr, char*)); }
+
+/* round to next power of 2 (see bit-twiddling-hacks) */
+static int round_pow2(float v) {
+    uint32_t vi = ((uint32_t)v) - 1;
+    for (uint32_t i = 0; i < 5; i++) {
+        vi |= (vi >> (1 << i));
+    }
+    return (int)(vi + 1);
+}
 
 struct Doh
 {
@@ -159,6 +151,7 @@ HL_PRIM sg_pipeline HL_NAME(sgMakePipeline)(sg_shader shd)
 HL_PRIM void HL_NAME(sgApplyPipeline)(sg_pipeline pipeline) { sg_apply_pipeline(pipeline); } DEFINE_PRIM(_VOID, sgApplyPipeline, _STRUCT);
 HL_PRIM void HL_NAME(sgApplyBindings)(const sg_bindings bind) { sg_apply_bindings(&bind); } DEFINE_PRIM(_VOID, sgApplyBindings, _STRUCT);
 HL_PRIM void HL_NAME(sgDraw)(int base_element, int num_elements, int num_instances) { sg_draw(base_element, num_elements, num_instances); } DEFINE_PRIM(_VOID, sgDraw, _I32 _I32 _I32);
+HL_PRIM int HL_NAME(roundPow2)(float v) { return round_pow2(v); } DEFINE_PRIM(_I32, roundPow2, _F32);
 
 HL_PRIM void HL_NAME(d3d11Present)() { d3d11_present(); } DEFINE_PRIM(_VOID, d3d11Present, _NO_ARG);
 HL_PRIM void HL_NAME(sgShutdown)() { sg_shutdown(); } DEFINE_PRIM(_VOID, sgShutdown, _NO_ARG);
@@ -245,6 +238,7 @@ vclosure* cb_event;
 
 const sapp_event* last_event = {};
 HL_PRIM const sapp_event* HL_NAME(sAppGetLastEvent)() { return last_event; } DEFINE_PRIM(_STRUCT, sAppGetLastEvent, _NO_ARG);
+HL_PRIM float HL_NAME(sAppDpiScale)() { return sapp_dpi_scale(); } DEFINE_PRIM(_F32, sAppDpiScale, _NO_ARG);
 
 void init(void) { hl_dyn_call(cb_init,NULL,0); }
 void frame(void) { hl_dyn_call(cb_frame,NULL,0); }
@@ -301,7 +295,6 @@ DEFINE_PRIM(_VOID, sgMain, _FUN(_VOID, _NO_ARG) _FUN(_VOID, _NO_ARG) _FUN(_VOID,
 //    }
 //}
 
-
 HL_PRIM void HL_NAME(sdtxSetup)()
 {
     sdtx_desc_t sdtx = {};
@@ -355,6 +348,9 @@ HL_PRIM void HL_NAME(sdtxTest)()
 } DEFINE_PRIM(_VOID, sdtxTest, _NO_ARG);
 HL_PRIM void HL_NAME(sdtxDraw)() { sdtx_draw(); } DEFINE_PRIM(_VOID, sdtxDraw, _NO_ARG);
 
+HL_PRIM void HL_NAME(sglSetup)() { sgl_desc_t sglDesc = {}; sgl_setup(&sglDesc); } DEFINE_PRIM(_VOID, sglSetup, _NO_ARG);
+HL_PRIM void HL_NAME(sglDraw)() { sgl_draw(); } DEFINE_PRIM(_VOID, sglDraw, _NO_ARG);
+HL_PRIM void HL_NAME(sglShutdown)() { sgl_shutdown(); } DEFINE_PRIM(_VOID, sglShutdown, _NO_ARG);
 
 
 
@@ -404,15 +400,6 @@ void font_bold_loaded(const sfetch_response_t* response) {
     }
 }
 
-/* round to next power of 2 (see bit-twiddling-hacks) */
-static int round_pow2(float v) {
-    uint32_t vi = ((uint32_t)v) - 1;
-    for (uint32_t i = 0; i < 5; i++) {
-        vi |= (vi >> (1 << i));
-    }
-    return (int)(vi + 1);
-}
-
 HL_PRIM void HL_NAME(fsIinit)()
 {
     state.dpi_scale = sapp_dpi_scale();
@@ -423,10 +410,10 @@ HL_PRIM void HL_NAME(fsIinit)()
         .width = atlas_dim,
             .height = atlas_dim,
             // allocator functions are optional, just check if it works
-            .allocator = {
-                .alloc = my_alloc,
-                .free = my_free,
-        }
+        //    .allocator = {
+        //        .alloc = my_alloc,
+        //        .free = my_free,
+        //}
     };
     FONScontext* fons_context = sfons_create(&fons_desc);
     state.fons = fons_context;
@@ -615,24 +602,7 @@ HL_PRIM void HL_NAME(fsCleanUp)()
     sfons_destroy(state.fons);
 
 } DEFINE_PRIM(_VOID, fsCleanUp, _NO_ARG);
-HL_PRIM void HL_NAME(sglSetup)() { sgl_desc_t sglDesc = {}; sgl_setup(&sglDesc); } DEFINE_PRIM(_VOID, sglSetup, _NO_ARG);
-HL_PRIM void HL_NAME(sglDraw)() { sgl_draw(); } DEFINE_PRIM(_VOID, sglDraw, _NO_ARG);
-HL_PRIM void HL_NAME(sglShutdown)() { sgl_shutdown(); } DEFINE_PRIM(_VOID, sglShutdown, _NO_ARG);
 
-//sapp_desc sokol_main(int argc, char* argv[]) {
-//    (void)argc;
-//    (void)argv;
-//    return (sapp_desc) {
-//        .init_cb = init,
-//            .frame_cb = frame,
-//            .cleanup_cb = cleanup,
-//            .event_cb = __dbgui_event,
-//            .width = 800,
-//            .height = 600,
-//            .high_dpi = true,
-//            .gl_force_gles2 = true,
-//            .window_title = "fontstash",
-//            .icon.sokol_default = true,
-//            .logger.func = slog_func,
-//    };
-//}
+
+HL_PRIM FONScontext* HL_NAME(sFonsCreate)(sfons_desc_t* fons_desc) { return sfons_create(fons_desc);} DEFINE_PRIM(_ABSTRACT(FONScontext*), sFonsCreate, _STRUCT);
+HL_PRIM int HL_NAME(sFonsAddFontMem)(FONScontext* stash, const char* name, unsigned char* data, int dataSize, int freeData) { return fonsAddFontMem(stash,name,data,dataSize,freeData);} DEFINE_PRIM(_I32, sFonsAddFontMem, _ABSTRACT(FONScontext*) _BYTES _BYTES _I32 _BOOL);

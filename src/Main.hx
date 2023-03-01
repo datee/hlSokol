@@ -1,5 +1,7 @@
 package;
 
+import Sokol.FONScontext;
+import sys.io.File;
 import Sokol.Sgl;
 import Sokol.Sfs;
 import Sokol.SappMouseButton;
@@ -16,6 +18,7 @@ import Sokol.SgpPoint;
 import Sokol.Sapp;
 import Sokol.Sdtx;
 import Sokol.HLArray;
+import Sokol.SfonsDesc;
 import Sokol.Sg;
 import Sokol.Sgp;
 import Sokol.D3d11;
@@ -40,7 +43,6 @@ class Main
 		Sg.setup();
 		Sgl.setup();
  		Sgp.setup();
-		Sfs.init();
 		Sdtx.setup();
 		
 		if (!Sgp.isValid())
@@ -50,6 +52,23 @@ class Main
 			trace(errMsg);
 			Sys.exit(1);
 		}
+
+		Sfs.init();
+
+		var dpiScale = Sapp.dpiScale();
+	    var atlasDim:Int = Sg.roundPow2(512.0*dpiScale);
+		var fonsDesc:SfonsDesc = { width:atlasDim, height:atlasDim };
+		var fons:FONScontext = Sfs.fonsCreate(fonsDesc);
+
+		var ttf1 = File.getBytes("DroidSerif-Regular.ttf");
+		var ttf2 = File.getBytes("DroidSerif-Bold.ttf");
+		var ttf3 = File.getBytes("DroidSerif-Italic.ttf");
+
+		var fontId1 = Sfs.fonsAddFontMem(fons,"sans",hl.Bytes.fromBytes(ttf1),ttf1.length,false);
+		var fontId2 = Sfs.fonsAddFontMem(fons,"sans-bold",hl.Bytes.fromBytes(ttf2),ttf2.length,false);
+		var fontId3 = Sfs.fonsAddFontMem(fons,"sans-italic",hl.Bytes.fromBytes(ttf3),ttf3.length,false);
+
+
 /*		var vertices:Array<Single> = 
 		[
 			//positions            colors

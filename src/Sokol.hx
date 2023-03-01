@@ -34,6 +34,7 @@ class Sg
 	@:hlNative("hlSokol","sgApplyPipeline")			static public function applyPipeline(pipeline:SgPipeline) {}
 	@:hlNative("hlSokol","sgApplyBindings")			static public function applyBindings(bindings:SgBindings) {}
 	@:hlNative("hlSokol","sgDraw")					static public function draw(baseElement:Int,numElements:Int,numInstances:Int) {}
+	@:hlNative("hlSokol","roundPow2")				static public function roundPow2(value:Single):Int { return 0;}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 }
@@ -49,6 +50,7 @@ class Sapp
 	@:hlNative("hlSokol","sAppGetLastEvent")		static public function getLastEvent():SappEvent { return null; }
 	@:hlNative("hlSokol","sAppIsFullscreen")		static public function isFullscreen():Bool { return false; }
 	@:hlNative("hlSokol","sAppToggleFullscreen")	static public function toggleFullscreen() { }
+	@:hlNative("hlSokol","sAppDpiScale")			static public function dpiScale():Single { return 0; }
 
 	/////////////////////////////////////////////////////////////////////////////////////
 }
@@ -153,6 +155,8 @@ class Sfs
 	@:hlNative("hlSokol","fsIinit")					static public function init() {}
 	@:hlNative("hlSokol","fsTestFrame")				static public function testFrame() {}
 	@:hlNative("hlSokol","fsCleanUp")				static public function cleanUp() {}
+	@:hlNative("hlSokol","sFonsCreate")				static public function fonsCreate(fonsDesc:SfonsDesc):FONScontext { return null; }
+	@:hlNative("hlSokol","sFonsAddFontMem")			static public function fonsAddFontMem(fonsContext:FONScontext,name:HLString,data:hl.Bytes,dataSize:Int,freeData:Bool):Int { return -1; }
 
 	/////////////////////////////////////////////////////////////////////////////////////
 }
@@ -445,6 +449,15 @@ typedef SgpVec2 = SgpPoint;
 	@:optional var android_tooltype			: hl.Abstract<"sapp_android_tooltype">; // only valid on Android
 	@:optional var changed					: Bool;
 }
+
+@:publicFields @:struct @:keep @:structInit class SfonsDesc
+{
+	@:optional var width					: Int;				// initial width of font atlas texture (default: 512, must be power of 2)
+	@:optional var height					: Int;				// initial height of font atlas texture (default: 512, must be power of 2)
+	@:optional var allocator				: hl.Abstract<"sfons_allocator_t">; // optional memory allocation overrides
+}
+
+typedef FONScontext = hl.Abstract<"FONScontext*">;
 
 enum abstract SgpBlendMode(Int)
 {
