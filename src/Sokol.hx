@@ -148,20 +148,6 @@ class Sdtx
 }
 
 @:hlNative("hlSokol")
-class Sfs
-{
-	/////////////////////////////////////////////////////////////////////////////////////
-
-	@:hlNative("hlSokol","fsIinit")					static public function init() {}
-	@:hlNative("hlSokol","fsTestFrame")				static public function testFrame() {}
-	@:hlNative("hlSokol","fsCleanUp")				static public function cleanUp() {}
-	@:hlNative("hlSokol","sFonsCreate")				static public function fonsCreate(fonsDesc:SfonsDesc):FONScontext { return null; }
-	@:hlNative("hlSokol","sFonsAddFontMem")			static public function fonsAddFontMem(fonsContext:FONScontext,name:HLString,data:hl.Bytes,dataSize:Int,freeData:Bool):Int { return -1; }
-
-	/////////////////////////////////////////////////////////////////////////////////////
-}
-
-@:hlNative("hlSokol")
 class Sgl
 {
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -169,6 +155,34 @@ class Sgl
 	@:hlNative("hlSokol","sglSetup")				static public function setup() {}
 	@:hlNative("hlSokol","sglShutdown")				static public function shutdown() {}
 	@:hlNative("hlSokol","sglDraw")					static public function draw() {}
+	@:hlNative("hlSokol","sglDefaults")				static public function defaults() {}
+	@:hlNative("hlSokol","sglMatrixModeProjection")	static public function matrixModeProjection() {}
+	@:hlNative("hlSokol","sglOrtho")				static public function ortho(l:Single, r:Single, b:Single, t:Single, n:Single, f:Single) {}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+}
+
+@:hlNative("hlSokol")
+class Sfs
+{
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	// @:hlNative("hlSokol","fsIinit")					static public function init() {}
+	// @:hlNative("hlSokol","fsTestFrame")				static public function testFrame() {}
+	// @:hlNative("hlSokol","fsCleanUp")				static public function cleanUp() {}
+	@:hlNative("hlSokol","sFonsCreate")				static public function fonsCreate(fonsDesc:SfonsDesc):FONScontext { return null; }
+	@:hlNative("hlSokol","sFonsAddFontMem")			static public function fonsAddFontMem(stash:FONScontext,name:HLString,data:hl.Bytes,dataSize:Int,freeData:Bool):Int { return -1; }
+	@:hlNative("hlSokol","sFonsClearState")			static public function clearState(stash:FONScontext) {}
+	@:hlNative("hlSokol","sFonsSetFont")			static public function setFont(stash:FONScontext, font:Int) {}
+	@:hlNative("hlSokol","sFonsSetSize")			static public function setSize(stash:FONScontext, size:Single) {}
+	@:hlNative("hlSokol","sFonsVertMetrics")		static public function vertMetrics(stash:FONScontext, ascender:Single, descender:Single, lineh:Single) {}
+	@:hlNative("hlSokol","sFonsSetColor")			static public function setColor(stash:FONScontext, color:UInt) {}
+	@:hlNative("hlSokol","sFonsDrawText")			static public function drawText(stash:FONScontext, x:Single, y:Single, str:HLString, ?end:HLString):Single { return 0;}
+	@:hlNative("hlSokol","sFonsSetAlign")			static public function setAlign(stash:FONScontext, align:FsAlign) {}
+	@:hlNative("hlSokol","sFonsSetSpacing")			static public function setSpacing(stash:FONScontext, spacing:Single) {}
+	@:hlNative("hlSokol","sFonsSetBlur")			static public function setBlur(stash:FONScontext, blur:Single) {}
+	@:hlNative("hlSokol","sFonsFlush")				static public function flush(stash:FONScontext) {}
+	@:hlNative("hlSokol","sFonsDestroy")			static public function destroy(stash:FONScontext) {}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 }
@@ -457,7 +471,27 @@ typedef SgpVec2 = SgpPoint;
 	@:optional var allocator				: hl.Abstract<"sfons_allocator_t">; // optional memory allocation overrides
 }
 
-typedef FONScontext = hl.Abstract<"FONScontext*">;
+@:publicFields @:struct @:keep @:structInit class FONScontext
+{
+	var frame_size:hl.Abstract<"FONSparams">;
+	var itw:Single;
+	var ith:Single;
+	var dirtyRect:HLArray<Int> = HLArray.alloc(4);
+	var fonts:hl.Abstract<"FONSfont**">;
+	var atlas:hl.Abstract<"FONSatlas*">;
+	var cfonts:Int;
+	var nfonts:Int;
+	var verts:HLArray<Int> = HLArray.alloc(1024*2);
+	var tcoords:HLArray<Int> = HLArray.alloc(1024*2);
+	var colors:HLArray<hl.Abstract<"unsigned int ">> = HLArray.alloc(1024);
+	var nverts:Int;
+	var scratch:hl.Abstract<"unsigned int ">;
+	var nscratch:Int;
+	var states:HLArray<hl.Abstract<"FONSstate">> = HLArray.alloc(20);
+	var nstates:Int;
+	var handleError:hl.Abstract<"(void* uptr, int error, int val)">;
+	var errorUptr:hl.Abstract<"void*">;
+}
 
 enum abstract SgpBlendMode(Int)
 {
@@ -521,6 +555,19 @@ enum abstract SappMouseButton(Int)
     var SAPP_MOUSEBUTTON_RIGHT = 1;
     var SAPP_MOUSEBUTTON_MIDDLE = 2;
     var SAPP_MOUSEBUTTON_INVALID = 256;
+}
+
+enum abstract FsAlign(Int)
+{
+	// Horizontal align
+	var FONS_ALIGN_LEFT 	= 1<<0;	// Default
+	var FONS_ALIGN_CENTER 	= 1<<1;
+	var FONS_ALIGN_RIGHT 	= 1<<2;
+	// Vertical align
+	var FONS_ALIGN_TOP 		= 1<<3;
+	var FONS_ALIGN_MIDDLE	= 1<<4;
+	var FONS_ALIGN_BOTTOM	= 1<<5;
+	var FONS_ALIGN_BASELINE	= 1<<6; // Default
 }
 
 enum abstract SappKeycode(Int)

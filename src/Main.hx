@@ -1,5 +1,6 @@
 package;
 
+import haxe.io.Bytes;
 import Sokol.FONScontext;
 import sys.io.File;
 import Sokol.Sgl;
@@ -38,6 +39,14 @@ class Main
 		Sapp.start(init,frame,shutdown,event,desc);
 	}
 
+	static var fons:FONScontext;
+	static var fontId1:Int;
+	static var fontId2:Int;
+	static var fontId3:Int;
+	static var ttf1:Bytes;
+	static var ttf2:Bytes;
+	static var ttf3:Bytes;
+
 	static public function init()
 	{
 		Sg.setup();
@@ -53,20 +62,30 @@ class Main
 			Sys.exit(1);
 		}
 
-		Sfs.init();
+		// Sfs.init();
 
 		var dpiScale = Sapp.dpiScale();
 	    var atlasDim:Int = Sg.roundPow2(512.0*dpiScale);
 		var fonsDesc:SfonsDesc = { width:atlasDim, height:atlasDim };
-		var fons:FONScontext = Sfs.fonsCreate(fonsDesc);
+		fons = Sfs.fonsCreate(fonsDesc);
 
-		var ttf1 = File.getBytes("DroidSerif-Regular.ttf");
-		var ttf2 = File.getBytes("DroidSerif-Bold.ttf");
-		var ttf3 = File.getBytes("DroidSerif-Italic.ttf");
+		ttf1 = File.getBytes("DroidSerif-Regular.ttf");
+		ttf2 = File.getBytes("DroidSerif-Bold.ttf");
+		ttf3 = File.getBytes("DroidSerif-Italic.ttf");
 
-		var fontId1 = Sfs.fonsAddFontMem(fons,"sans",hl.Bytes.fromBytes(ttf1),ttf1.length,false);
-		var fontId2 = Sfs.fonsAddFontMem(fons,"sans-bold",hl.Bytes.fromBytes(ttf2),ttf2.length,false);
-		var fontId3 = Sfs.fonsAddFontMem(fons,"sans-italic",hl.Bytes.fromBytes(ttf3),ttf3.length,false);
+		fontId1 = Sfs.fonsAddFontMem(fons,"sans",hl.Bytes.fromBytes(ttf1),ttf1.length,false);
+		fontId2 = Sfs.fonsAddFontMem(fons,"sans-bold",hl.Bytes.fromBytes(ttf2),ttf2.length,false);
+		fontId3 = Sfs.fonsAddFontMem(fons,"sans-italic",hl.Bytes.fromBytes(ttf3),ttf3.length,false);
+
+
+
+
+
+
+
+
+
+
 
 
 /*		var vertices:Array<Single> = 
@@ -240,9 +259,33 @@ class Main
 
 		// Sg.beginDefaultPass(w,h);
 */		
-		Sfs.testFrame();
+		// Sfs.testFrame();
+
+		// var dpi = Sapp.dpiScale();
+
+
+		Sgl.defaults();
+		Sgl.matrixModeProjection();
+		Sgl.ortho(0.0,Sapp.width(),Sapp.height(),0.0,-1.0,1.0);
+		Sfs.clearState(fons);
+		Sfs.setFont(fons,fontId1);
+		Sfs.setSize(fons,124*Sapp.dpiScale());
+		// var lh = 0.0;
+		// Sfs.vertMetrics(fons,0,0,0);
+		Sfs.setColor(fons,0xffff33ff);
+		Sfs.drawText(fons,100,200,"Hello Fontstash?");
+		Sfs.setFont(fons,fontId2);
+		Sfs.setSize(fons,24*Sapp.dpiScale());
+		Sfs.setColor(fons,0xffffcc55);
+		Sfs.drawText(fons,100,240,'Dis is kål!? ${Math.random()}');
+		Sfs.setSize(fons,136*Sapp.dpiScale());
+		Sfs.setColor(fons,0xff0088ff);
+		Sfs.setBlur(fons,5);
+		Sfs.drawText(fons,100,380,'Whæts øpp,dåwg?');
+		Sfs.flush(fons);
 		Sgl.draw();
 		
+
 		Sgp.end();
 		Sg.endPass();
 		Sg.commit();
@@ -252,9 +295,10 @@ class Main
 
 	static function shutdown()
 	{
+		Sfs.destroy(fons);
 		Sdtx.shutdown();
 		Sgp.shutdown();
-		Sfs.cleanUp();
+		// Sfs.cleanUp();
 		Sgl.shutdown();
 		Sg.shutdown();
 	}

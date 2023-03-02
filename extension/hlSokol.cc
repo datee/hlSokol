@@ -351,13 +351,11 @@ HL_PRIM void HL_NAME(sdtxDraw)() { sdtx_draw(); } DEFINE_PRIM(_VOID, sdtxDraw, _
 HL_PRIM void HL_NAME(sglSetup)() { sgl_desc_t sglDesc = {}; sgl_setup(&sglDesc); } DEFINE_PRIM(_VOID, sglSetup, _NO_ARG);
 HL_PRIM void HL_NAME(sglDraw)() { sgl_draw(); } DEFINE_PRIM(_VOID, sglDraw, _NO_ARG);
 HL_PRIM void HL_NAME(sglShutdown)() { sgl_shutdown(); } DEFINE_PRIM(_VOID, sglShutdown, _NO_ARG);
+HL_PRIM void HL_NAME(sglDefaults)() { sgl_defaults(); } DEFINE_PRIM(_VOID, sglDefaults, _NO_ARG);
+HL_PRIM void HL_NAME(sglMatrixModeProjection)() { sgl_matrix_mode_projection(); } DEFINE_PRIM(_VOID, sglMatrixModeProjection, _NO_ARG);
+HL_PRIM void HL_NAME(sglOrtho)(float l, float r, float b, float t, float n, float f) { sgl_ortho(l, r, b, t, n, f); } DEFINE_PRIM(_VOID, sglOrtho, _F32 _F32 _F32 _F32 _F32 _F32);
 
-
-
-
-
-
-
+/*
 typedef struct {
     FONScontext* fons;
     float dpi_scale;
@@ -370,7 +368,7 @@ typedef struct {
 } state_t;
 state_t state;
 
-/* optional memory allocation function overrides (see sfons_create()) */
+// optional memory allocation function overrides (see sfons_create())
 void* my_alloc(size_t size, void* user_data) {
     (void)user_data;
     return malloc(size);
@@ -381,7 +379,7 @@ void my_free(void* ptr, void* user_data) {
     free(ptr);
 }
 
-/* sokol-fetch load callbacks */
+// sokol-fetch load callbacks
 void font_normal_loaded(const sfetch_response_t* response) {
     if (response->fetched) {
         state.font_normal = fonsAddFontMem(state.fons, "sans", (unsigned char*)response->data.ptr, (int)response->data.size, false);
@@ -404,16 +402,16 @@ HL_PRIM void HL_NAME(fsIinit)()
 {
     state.dpi_scale = sapp_dpi_scale();
 
-    /* make sure the fontstash atlas width/height is pow-2 */
+    // make sure the fontstash atlas width/height is pow-2
     const int atlas_dim = round_pow2(512.0f * state.dpi_scale);
     sfons_desc_t fons_desc = {
         .width = atlas_dim,
             .height = atlas_dim,
-            // allocator functions are optional, just check if it works
-        //    .allocator = {
-        //        .alloc = my_alloc,
-        //        .free = my_free,
-        //}
+             allocator functions are optional, just check if it works
+            .allocator = {
+                .alloc = my_alloc,
+                .free = my_free,
+        }
     };
     FONScontext* fons_context = sfons_create(&fons_desc);
     state.fons = fons_context;
@@ -421,7 +419,7 @@ HL_PRIM void HL_NAME(fsIinit)()
     state.font_italic = FONS_INVALID;
     state.font_bold = FONS_INVALID;
 
-    /* use sokol_fetch for loading the TTF font files */
+    // use sokol_fetch for loading the TTF font files
     sfetch_desc_t sfetchdesc  = { .num_channels = 1, .num_lanes = 4 };
     sfetch_setup(&sfetchdesc);
 
@@ -450,21 +448,21 @@ HL_PRIM void HL_NAME(fsIinit)()
 
 static void line(float sx, float sy, float ex, float ey)
 {
-    //sgl_begin_lines();
-    //sgl_c4b(255, 255, 0, 128);
-    //sgl_v2f(sx, sy);
-    //sgl_v2f(ex, ey);
-    //sgl_end();
+    sgl_begin_lines();
+    sgl_c4b(255, 255, 0, 128);
+    sgl_v2f(sx, sy);
+    sgl_v2f(ex, ey);
+    sgl_end();
 }
 
 HL_PRIM void HL_NAME(fsTestFrame)()
 {
     const float dpis = state.dpi_scale;
 
-    /* pump sokol_fetch message queues */
+    // pump sokol_fetch message queues
     sfetch_dowork();
 
-    /* text rendering via fontstash.h */
+    // text rendering via fontstash.h 
     float sx, sy, dx, dy, lh = 0.0f;
     uint32_t white = sfons_rgba(255, 255, 255, 255);
     uint32_t black = sfons_rgba(0, 0, 0, 255);
@@ -530,7 +528,7 @@ HL_PRIM void HL_NAME(fsTestFrame)()
         fonsDrawText(fs, dx, dy, "Ég get etið gler án þess að meiða mig.", NULL);
     }
 
-    /* Font alignment */
+    // Font alignment
     if (state.font_normal != FONS_INVALID) {
         fonsSetSize(fs, 18.0f * dpis);
         fonsSetFont(fs, state.font_normal);
@@ -560,7 +558,7 @@ HL_PRIM void HL_NAME(fsTestFrame)()
         fonsDrawText(fs, dx, dy, "Right", NULL);
     }
 
-    /* Blur */
+    // Blur
     if (state.font_italic != FONS_INVALID) {
         dx = 500 * dpis; dy = 350 * dpis;
         fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_BASELINE);
@@ -585,15 +583,15 @@ HL_PRIM void HL_NAME(fsTestFrame)()
         fonsDrawText(fs, dx, dy, "DROP THAT SHADOW", NULL);
     }
 
-    /* flush fontstash's font atlas to sokol-gfx texture */
+    // flush fontstash's font atlas to sokol-gfx texture
     sfons_flush(fs);
 
-    ///* render pass */
-    //sg_begin_default_pass(&(sg_pass_action) {
-    //    .colors[0] = {
-    //        .action = SG_ACTION_CLEAR, .value = { 0.3f, 0.3f, 0.32f, 1.0f }
-    //    }
-    //}, sapp_width(), sapp_height());
+    // render pass
+    sg_begin_default_pass(&(sg_pass_action) {
+        .colors[0] = {
+            .action = SG_ACTION_CLEAR, .value = { 0.3f, 0.3f, 0.32f, 1.0f }
+        }
+    }, sapp_width(), sapp_height());
 } DEFINE_PRIM(_VOID, fsTestFrame, _NO_ARG);
 
 HL_PRIM void HL_NAME(fsCleanUp)()
@@ -602,7 +600,18 @@ HL_PRIM void HL_NAME(fsCleanUp)()
     sfons_destroy(state.fons);
 
 } DEFINE_PRIM(_VOID, fsCleanUp, _NO_ARG);
+*/
 
-
-HL_PRIM FONScontext* HL_NAME(sFonsCreate)(sfons_desc_t* fons_desc) { return sfons_create(fons_desc);} DEFINE_PRIM(_ABSTRACT(FONScontext*), sFonsCreate, _STRUCT);
-HL_PRIM int HL_NAME(sFonsAddFontMem)(FONScontext* stash, const char* name, unsigned char* data, int dataSize, int freeData) { return fonsAddFontMem(stash,name,data,dataSize,freeData);} DEFINE_PRIM(_I32, sFonsAddFontMem, _ABSTRACT(FONScontext*) _BYTES _BYTES _I32 _BOOL);
+HL_PRIM FONScontext* HL_NAME(sFonsCreate)(sfons_desc_t* fons_desc) { return sfons_create(fons_desc);} DEFINE_PRIM(_STRUCT, sFonsCreate, _STRUCT);
+HL_PRIM int HL_NAME(sFonsAddFontMem)(FONScontext* stash, const char* name, unsigned char* data, int dataSize, int freeData) { return fonsAddFontMem(stash,name,data,dataSize,freeData);} DEFINE_PRIM(_I32, sFonsAddFontMem, _STRUCT _BYTES _BYTES _I32 _BOOL);
+HL_PRIM void HL_NAME(sFonsClearState)(FONScontext* stash) { fonsClearState(stash); } DEFINE_PRIM(_VOID, sFonsClearState, _STRUCT);
+HL_PRIM void HL_NAME(sFonsSetFont)(FONScontext* stash, int font) { fonsSetFont(stash, font); } DEFINE_PRIM(_VOID, sFonsSetFont, _STRUCT _I32);
+HL_PRIM void HL_NAME(sFonsSetSize)(FONScontext* stash, float size) { fonsSetSize(stash, size); } DEFINE_PRIM(_VOID, sFonsSetSize, _STRUCT _F32);
+HL_PRIM void HL_NAME(sFonsVertMetrics)(FONScontext* stash, float* ascender, float* descender, float* lineh) { fonsVertMetrics(stash, ascender, descender, lineh); } DEFINE_PRIM(_VOID, sFonsVertMetrics, _STRUCT _F32 _F32 _F32);
+HL_PRIM void HL_NAME(sFonsSetColor)(FONScontext* stash, unsigned int color) { fonsSetColor(stash,color); } DEFINE_PRIM(_VOID, sFonsSetColor, _STRUCT _I32);
+HL_PRIM float HL_NAME(sFonsDrawText)(FONScontext* stash, float x, float y, const char* str, const char* end) { return fonsDrawText(stash,x,y,str,end);} DEFINE_PRIM(_F32, sFonsDrawText, _STRUCT _F32 _F32 _BYTES _BYTES);
+HL_PRIM void HL_NAME(sFonsSetAlign)(FONScontext* stash, int align) { fonsSetAlign(stash, align); } DEFINE_PRIM(_VOID, sFonsSetAlign, _STRUCT _I32);
+HL_PRIM void HL_NAME(sFonsSetSpacing)(FONScontext* stash, float spacing) { fonsSetSpacing(stash, spacing); } DEFINE_PRIM(_VOID, sFonsSetSpacing, _STRUCT _F32);
+HL_PRIM void HL_NAME(sFonsSetBlur)(FONScontext* stash, float blur) { fonsSetBlur(stash, blur); } DEFINE_PRIM(_VOID, sFonsSetBlur, _STRUCT _F32);
+HL_PRIM void HL_NAME(sFonsFlush)(FONScontext* stash) { sfons_flush(stash); } DEFINE_PRIM(_VOID, sFonsFlush, _STRUCT);
+HL_PRIM void HL_NAME(sFonsDestroy)(FONScontext* stash) { sfons_destroy(stash); } DEFINE_PRIM(_VOID, sFonsDestroy, _STRUCT);
