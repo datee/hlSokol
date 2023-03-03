@@ -30,6 +30,12 @@
 //#include "dbgui/dbgui.h"
 #include "fileutil.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_STATIC
+#define STBI_NO_SIMD
+//#define STBI_ONLY_PNG
+#include "stb_image.h"
+
 #define FONT_KC853 (0)
 #define FONT_KC854 (1)
 #define FONT_Z1013 (2)
@@ -152,6 +158,32 @@ HL_PRIM void HL_NAME(sgApplyPipeline)(sg_pipeline pipeline) { sg_apply_pipeline(
 HL_PRIM void HL_NAME(sgApplyBindings)(const sg_bindings bind) { sg_apply_bindings(&bind); } DEFINE_PRIM(_VOID, sgApplyBindings, _STRUCT);
 HL_PRIM void HL_NAME(sgDraw)(int base_element, int num_elements, int num_instances) { sg_draw(base_element, num_elements, num_instances); } DEFINE_PRIM(_VOID, sgDraw, _I32 _I32 _I32);
 HL_PRIM int HL_NAME(roundPow2)(float v) { return round_pow2(v); } DEFINE_PRIM(_I32, roundPow2, _F32);
+
+//HL_PRIM sg_image HL_NAME(stbiLoad)(char const* filename, int* x, int* y, int* comp, int req_comp) { stbi_load(filename, &width, &height, &channels, 4); } DEFINE_PRIM(_VOID, stbiLoad, _I32 _I32 _I32);
+HL_PRIM sg_image HL_NAME(sgLoadImage)(const char* filename)
+{
+    int width, height, channels;
+    uint8_t* data = stbi_load(filename, &width, &height, &channels, 4);
+    sg_image img = { SG_INVALID_ID };
+    if (!data)
+        return img;
+    sg_image_desc image_desc;
+    memset(&image_desc, 0, sizeof(sg_image_desc));
+    image_desc.width = width;
+    image_desc.height = height;
+    image_desc.min_filter = SG_FILTER_LINEAR;
+    image_desc.mag_filter = SG_FILTER_LINEAR;
+    image_desc.wrap_u = SG_WRAP_REPEAT;
+    image_desc.wrap_v = SG_WRAP_REPEAT;
+    image_desc.data.subimage[0][0].ptr = data;
+    image_desc.data.subimage[0][0].size = (size_t)(width * height * 4);
+    img = sg_make_image(&image_desc);
+    stbi_image_free(data);
+    return img;
+
+} DEFINE_PRIM(_STRUCT, sgLoadImage, _BYTES);
+
+
 
 HL_PRIM void HL_NAME(d3d11Present)() { d3d11_present(); } DEFINE_PRIM(_VOID, d3d11Present, _NO_ARG);
 HL_PRIM void HL_NAME(sgShutdown)() { sg_shutdown(); } DEFINE_PRIM(_VOID, sgShutdown, _NO_ARG);
@@ -354,6 +386,8 @@ HL_PRIM void HL_NAME(sglShutdown)() { sgl_shutdown(); } DEFINE_PRIM(_VOID, sglSh
 HL_PRIM void HL_NAME(sglDefaults)() { sgl_defaults(); } DEFINE_PRIM(_VOID, sglDefaults, _NO_ARG);
 HL_PRIM void HL_NAME(sglMatrixModeProjection)() { sgl_matrix_mode_projection(); } DEFINE_PRIM(_VOID, sglMatrixModeProjection, _NO_ARG);
 HL_PRIM void HL_NAME(sglOrtho)(float l, float r, float b, float t, float n, float f) { sgl_ortho(l, r, b, t, n, f); } DEFINE_PRIM(_VOID, sglOrtho, _F32 _F32 _F32 _F32 _F32 _F32);
+HL_PRIM void HL_NAME(sglLayer)(int layer_id) { sgl_layer(layer_id); } DEFINE_PRIM(_VOID, sglLayer, _I32);
+HL_PRIM void HL_NAME(sglDrawLayer)(int layer_id) { sgl_draw_layer(layer_id); } DEFINE_PRIM(_VOID, sglDrawLayer, _I32);
 
 /*
 typedef struct {
@@ -610,6 +644,7 @@ HL_PRIM void HL_NAME(sFonsSetSize)(FONScontext* stash, float size) { fonsSetSize
 HL_PRIM void HL_NAME(sFonsVertMetrics)(FONScontext* stash, float* ascender, float* descender, float* lineh) { fonsVertMetrics(stash, ascender, descender, lineh); } DEFINE_PRIM(_VOID, sFonsVertMetrics, _STRUCT _F32 _F32 _F32);
 HL_PRIM void HL_NAME(sFonsSetColor)(FONScontext* stash, unsigned int color) { fonsSetColor(stash,color); } DEFINE_PRIM(_VOID, sFonsSetColor, _STRUCT _I32);
 HL_PRIM float HL_NAME(sFonsDrawText)(FONScontext* stash, float x, float y, const char* str, const char* end) { return fonsDrawText(stash,x,y,str,end);} DEFINE_PRIM(_F32, sFonsDrawText, _STRUCT _F32 _F32 _BYTES _BYTES);
+HL_PRIM float HL_NAME(sFonsTextBounds)(FONScontext* stash, float x, float y, const char* str, const char* end, float* bounds) { return fonsTextBounds(stash,x,y,str,end,bounds);} DEFINE_PRIM(_F32, sFonsTextBounds, _STRUCT _F32 _F32 _BYTES _BYTES _F32);
 HL_PRIM void HL_NAME(sFonsSetAlign)(FONScontext* stash, int align) { fonsSetAlign(stash, align); } DEFINE_PRIM(_VOID, sFonsSetAlign, _STRUCT _I32);
 HL_PRIM void HL_NAME(sFonsSetSpacing)(FONScontext* stash, float spacing) { fonsSetSpacing(stash, spacing); } DEFINE_PRIM(_VOID, sFonsSetSpacing, _STRUCT _F32);
 HL_PRIM void HL_NAME(sFonsSetBlur)(FONScontext* stash, float blur) { fonsSetBlur(stash, blur); } DEFINE_PRIM(_VOID, sFonsSetBlur, _STRUCT _F32);

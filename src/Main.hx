@@ -1,5 +1,6 @@
 package;
 
+import Sokol.SgImage;
 import haxe.io.Bytes;
 import Sokol.FONScontext;
 import sys.io.File;
@@ -46,6 +47,7 @@ class Main
 	static var ttf1:Bytes;
 	static var ttf2:Bytes;
 	static var ttf3:Bytes;
+	static var img:SgImage;
 
 	static public function init()
 	{
@@ -77,7 +79,7 @@ class Main
 		fontId2 = Sfs.fonsAddFontMem(fons,"sans-bold",hl.Bytes.fromBytes(ttf2),ttf2.length,false);
 		fontId3 = Sfs.fonsAddFontMem(fons,"sans-italic",hl.Bytes.fromBytes(ttf3),ttf3.length,false);
 
-
+		img = Sg.loadImage("fox.jpg");
 
 
 
@@ -200,21 +202,29 @@ class Main
 				i+=2;
 			}
 		}
-		Sgp.flush();
+		// Sgp.flush();
 
 
-		Sdtx.canvas(w*0.5,h*0.5);
-		Sdtx.origin(4,4);
-		Sdtx.home();
-		Sdtx.font(5);
-		Sdtx.color3b(0x22, 0xff, 0x33);
-		Sdtx.puts('Whats up : ${Math.random()}');
-		Sdtx.crlf();
-		Sdtx.font(1);
-		Sdtx.color3b(0xff, 0x22, 0x33);
-		Sdtx.puts("Thats cool...");
-		Sdtx.crlf();
-		Sdtx.draw();
+
+
+	 	// Sgp.begin(w,h);
+		// Sgp.viewport(0,0,w,h);
+		// Sgp.project(0,w,0,h);
+		// Sgp.setBlendMode(SGP_BLENDMODE_BLEND);
+		Sgp.setColor(1,1,1,1);
+		Sgp.pushTransform();
+		Sgp.rotateAt(rot*(Math.PI/180)*0.5,600,550);
+		Sgp.setImage(0,img);
+		Sgp.drawTexturedRect(400,400,400,300);
+		Sgp.pushTransform();
+		Sgp.rotateAt(rot*(Math.PI/180)*0.7,400,400);
+		Sgp.translate(400-50,400-50);
+		Sgp.setColor(1,1,1,0.5);
+		Sgp.drawTexturedRect(0,0,150,100);
+		Sgp.popTransform();
+		Sgp.sgpResetImage(0);
+		Sgp.popTransform();
+		Sgp.flush();		
 
 /*
 
@@ -273,7 +283,7 @@ class Main
 		// var lh = 0.0;
 		// Sfs.vertMetrics(fons,0,0,0);
 		Sfs.setColor(fons,0xffff33ff);
-		Sfs.drawText(fons,100,200,"Hello Fontstash?");
+		Sfs.drawText(fons,100,200+(Math.sin(Timer.stamp()*8.0)*30),"Hello Fontstash?");
 		Sfs.setFont(fons,fontId2);
 		Sfs.setSize(fons,24*Sapp.dpiScale());
 		Sfs.setColor(fons,0xffffcc55);
@@ -284,8 +294,20 @@ class Main
 		Sfs.drawText(fons,100,380,'Whæts øpp,dåwg?');
 		Sfs.flush(fons);
 		Sgl.draw();
-		
 
+		Sdtx.canvas(w*0.5,h*0.5);
+		Sdtx.origin(4,4);
+		Sdtx.home();
+		Sdtx.font(5);
+		Sdtx.color3b(0x22, 0xff, 0x33);
+		Sdtx.puts('Whats up : ${Math.random()}');
+		Sdtx.crlf();
+		Sdtx.font(1);
+		Sdtx.color3b(0xff, 0x22, 0x33);
+		Sdtx.puts("Thats cool...");
+		Sdtx.crlf();
+		Sdtx.draw();
+		
 		Sgp.end();
 		Sg.endPass();
 		Sg.commit();
@@ -314,6 +336,8 @@ class Main
 		if (e.mouse_button!=SappMouseButton.SAPP_MOUSEBUTTON_INVALID)
 			mouseDown=!mouseDown;
 	}
+
+	static var fl:Float=0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////	

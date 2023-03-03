@@ -35,6 +35,7 @@ class Sg
 	@:hlNative("hlSokol","sgApplyBindings")			static public function applyBindings(bindings:SgBindings) {}
 	@:hlNative("hlSokol","sgDraw")					static public function draw(baseElement:Int,numElements:Int,numInstances:Int) {}
 	@:hlNative("hlSokol","roundPow2")				static public function roundPow2(value:Single):Int { return 0;}
+	@:hlNative("hlSokol","sgLoadImage")				static public function loadImage(path:HLString):SgImage { return null;}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 }
@@ -116,6 +117,7 @@ class Sgp
 	@:hlNative("hlSokol","sgpDrawFilledTrianglesStrip") static public function drawFilledTrianglesStrip(points:HLArray<SgpPoint>,count:Int) {}
 	@:hlNative("hlSokol","sgpDrawFilledRects")		static public function drawFilledRects(rects:HLArray<SgpRect>,count:Int) {}
 	@:hlNative("hlSokol","sgpDrawFilledRect")		static public function drawFilledRect(x:Single,y:Single,width:Single,height:Single) {}
+	@:hlNative("hlSokol","sgpDrawTexturedRect")		static public function drawTexturedRect(x:Single,y:Single,width:Single,height:Single) {}
 	@:hlNative("hlSokol","sgpDrawTexturedRects")	static public function drawTexturedRects(rects:HLArray<SgpRect>,count:Int) {}
 	@:hlNative("hlSokol","sgpDrawTexturedRectsEx")	static public function drawTexturedRectsEx(channel:Int, rects:HLArray<SgpTexturedRect>,count:Int) {}
 	@:hlNative("hlSokol","sgpDrawTexturedRectEx")	static public function drawTexturedRectEx(channel:Int, dest_rect:SgpRect,src_rect:SgpRect) {}
@@ -158,6 +160,8 @@ class Sgl
 	@:hlNative("hlSokol","sglDefaults")				static public function defaults() {}
 	@:hlNative("hlSokol","sglMatrixModeProjection")	static public function matrixModeProjection() {}
 	@:hlNative("hlSokol","sglOrtho")				static public function ortho(l:Single, r:Single, b:Single, t:Single, n:Single, f:Single) {}
+	@:hlNative("hlSokol","sglLayer")				static public function layer(layerID:Int) {}
+	@:hlNative("hlSokol","sglDrawLayer")			static public function drawLayer(layerID:Int) {}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 }
@@ -178,6 +182,7 @@ class Sfs
 	@:hlNative("hlSokol","sFonsVertMetrics")		static public function vertMetrics(stash:FONScontext, ascender:Single, descender:Single, lineh:Single) {}
 	@:hlNative("hlSokol","sFonsSetColor")			static public function setColor(stash:FONScontext, color:UInt) {}
 	@:hlNative("hlSokol","sFonsDrawText")			static public function drawText(stash:FONScontext, x:Single, y:Single, str:HLString, ?end:HLString):Single { return 0;}
+	@:hlNative("hlSokol","sFonsTextBounds")			static public function sFonsTextBounds(stash:FONScontext, x:Single, y:Single, str:HLString, ?end:HLString, bounds:Single):Single { return 0;}
 	@:hlNative("hlSokol","sFonsSetAlign")			static public function setAlign(stash:FONScontext, align:FsAlign) {}
 	@:hlNative("hlSokol","sFonsSetSpacing")			static public function setSpacing(stash:FONScontext, spacing:Single) {}
 	@:hlNative("hlSokol","sFonsSetBlur")			static public function setBlur(stash:FONScontext, blur:Single) {}
@@ -272,6 +277,38 @@ abstract HLArray<T>(hl.NativeArray<T>)
 {
 	var max_vertices:Int;
 	var max_commands:Int;
+}
+
+@:publicFields @:struct @:keep @:structInit class SgImageDesc
+{
+	@:optional var _start_canary			: Int;
+	@:optional var type						: hl.Abstract<"sg_image_type">;
+	@:optional var render_target			: Bool;
+	@:optional var width					: Int;
+	@:optional var height					: Int;
+	@:optional var num_slices				: Int;
+	@:optional var num_mipmaps				: Int;
+	@:optional var usage					: hl.Abstract<"sg_usage">;
+	@:optional var pixel_format				: hl.Abstract<"sg_pixel_format">;
+	@:optional var sample_count				: Int;
+	@:optional var min_filter				: SgFilter;
+	@:optional var mag_filter				: SgFilter;
+	@:optional var wrap_u					: SgWrap;
+	@:optional var wrap_v					: SgWrap;
+	@:optional var wrap_w					: SgWrap;
+	@:optional var border_color				: hl.Abstract<"sg_border_color">;
+	@:optional var max_anisotropy			: UInt;
+	@:optional var min_lod					: Single;
+	@:optional var max_lod					: Single;
+	@:optional var data						: hl.Abstract<"sg_image_data">;
+	@:optional var label					: HLString;
+	@:optional var gl_textures				: HLArray<UInt> = HLArray.alloc(2);
+	@:optional var gl_texture_target		: UInt;
+	@:optional var mtl_textures				: HLArray<hl.Abstract<"const void*">> = HLArray.alloc(2);
+	@:optional var d3d11_texture			: hl.Abstract<"const void*">;
+	@:optional var d3d11_shader_resource_view : hl.Abstract<"const void*">;
+	@:optional var wgpu_texture 			: hl.Abstract<"const void*">;
+	@:optional var _end_canary				: Int;
 }
 
 @:publicFields @:struct @:keep @:structInit class SgpState
@@ -491,6 +528,45 @@ typedef SgpVec2 = SgpPoint;
 	var nstates:Int;
 	var handleError:hl.Abstract<"(void* uptr, int error, int val)">;
 	var errorUptr:hl.Abstract<"void*">;
+}
+
+enum abstract SgConstants(Int)
+{
+    var SG_INVALID_ID = 0;
+    var SG_NUM_SHADER_STAGES = 2;
+    var SG_NUM_INFLIGHT_FRAMES = 2;
+    var SG_MAX_COLOR_ATTACHMENTS = 4;
+    var SG_MAX_SHADERSTAGE_BUFFERS = 8;
+    var SG_MAX_SHADERSTAGE_IMAGES = 12;
+    var SG_MAX_SHADERSTAGE_UBS = 4;
+    var SG_MAX_UB_MEMBERS = 16;
+    var SG_MAX_VERTEX_ATTRIBUTES = 16;      /* NOTE: actual max vertex attrs can be less on GLES2, see sg_limits! */
+    var SG_MAX_MIPMAPS = 16;
+    var SG_MAX_TEXTUREARRAY_LAYERS = 128;
+}
+
+enum abstract SgFilter(Int)
+{
+    var _SG_FILTER_DEFAULT; /* value 0 reserved for default-init */
+    var SG_FILTER_NEAREST;
+    var SG_FILTER_LINEAR;
+    var SG_FILTER_NEAREST_MIPMAP_NEAREST;
+    var SG_FILTER_NEAREST_MIPMAP_LINEAR;
+    var SG_FILTER_LINEAR_MIPMAP_NEAREST;
+    var SG_FILTER_LINEAR_MIPMAP_LINEAR;
+    var _SG_FILTER_NUM;
+    var _SG_FILTER_FORCE_U32 = 0x7FFFFFFF;
+}
+
+enum abstract SgWrap(Int)
+{
+    var _SG_WRAP_DEFAULT; /* value 0 reserved for default-init */
+    var SG_WRAP_REPEAT;
+    var SG_WRAP_CLAMP_TO_EDGE;
+    var SG_WRAP_CLAMP_TO_BORDER;
+    var SG_WRAP_MIRRORED_REPEAT;
+    var _SG_WRAP_NUM;
+    var _SG_WRAP_FORCE_U32 = 0x7FFFFFFF;
 }
 
 enum abstract SgpBlendMode(Int)
